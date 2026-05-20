@@ -1,0 +1,65 @@
+# Build
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Visual Studio
+.vs/
+
+# Logs
+*.log
+
+# ASP.NET Core
+appsettings.Development.json
+
+# Entity Framework
+Migrations/
+
+# Publish
+publish/
+
+# Node modules (if frontend exists)
+node_modules/
+
+# wwwroot generated files
+wwwroot/lib/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
+# NuGet
+*.nupkg
+
+# Test Results
+TestResults/
+
+# Resharper
+_ReSharper*/
+*.DotSettings.user
+
+# Temporary files
+*.tmp
+*.temp
+
+# SQLite
+*.db
+*.sqlite
+
+# Coverage
+coverage/
+*.coverage
