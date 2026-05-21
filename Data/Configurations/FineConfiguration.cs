@@ -14,7 +14,7 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(f => f.FineId);
 
             builder.Property(f => f.FineId)
-                .HasColumnName("find_id");
+                .HasColumnName("fine_id");
 
             builder.Property(f => f.BorrowingDetailId)
                 .HasColumnName("borrowing_detail_id")

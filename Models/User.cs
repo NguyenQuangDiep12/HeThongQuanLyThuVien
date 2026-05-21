@@ -13,6 +13,8 @@ namespace HeThongQuanLyThuVien.Models
         public string Address { get; set; } = string.Empty;
         public string LibraryCardCode { get; set; } = string.Empty;
         public CardStatus CardStatus { get; set; } = CardStatus.PENDING;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
 
         // Navigation
         public Role Role { get; set; } = null!;

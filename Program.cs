@@ -1,4 +1,5 @@
 using HeThongQuanLyThuVien.Data;
+using HeThongQuanLyThuVien.Middlewares;
 using HeThongQuanLyThuVien.Services;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -53,4 +54,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
+
 app.Run();

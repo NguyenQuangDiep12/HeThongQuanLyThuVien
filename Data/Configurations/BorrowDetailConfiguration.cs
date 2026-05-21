@@ -28,7 +28,7 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .HasColumnName("quantity")
                 .IsRequired();
 
-            builder.Property(bd => bd.ItemBorrowedStatus)
+            builder.Property(bd => bd.Status)
                 .HasColumnName("item_borrowed_status")
                 .IsRequired()
                 .HasConversion<string>()

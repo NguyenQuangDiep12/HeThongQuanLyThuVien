@@ -36,6 +36,7 @@ namespace HeThongQuanLyThuVien.Data.Configurations
 
             builder.Property(r => r.CreatedAt)
                 .HasColumnName("created_at")
+                .HasDefaultValueSql("GETUTCDATE()")
                 .IsRequired();
 
             builder.Property(r => r.UpdatedAt)

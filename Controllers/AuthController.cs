@@ -22,25 +22,13 @@ namespace HeThongQuanLyThuVien.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
         {
-            try
+            var response = await _authService.RegisterAsync(request, ct);
+            return Ok(new ApiResponse<LoginResponse>
             {
-                var response = await _authService.RegisterAsync(request, ct);
-                return Ok(new ApiResponse<LoginResponse>
-                {
-                    Success = true,
-                    Data = response,
-                    Message = "Dang ky thanh cong."
-                });
-            }
-            catch (Exception ex)
-            {
-                return Conflict(new ApiResponse<LoginResponse>
-                {
-                    Success = false,
-                    Data = null,
-                    Message = ex.Message
-                });
-            }
+                Success = true,
+                Data = response,
+                Message = "Dang ky thanh cong"
+            });
         }
 
         // POST /api/auth/login
@@ -48,25 +36,13 @@ namespace HeThongQuanLyThuVien.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
         {
-            try
+            var response = await _authService.LoginAsync(request, ct);
+            return Ok(new ApiResponse<LoginResponse>
             {
-                var response = await _authService.LoginAsync(request, ct);
-                return Ok(new ApiResponse<LoginResponse>
-                {
-                    Success = true,
-                    Data = response,
-                    Message = "Dang nhap thanh cong."
-                });
-            }
-            catch (Exception ex)
-            {
-                return Unauthorized(new ApiResponse<LoginResponse>
-                {
-                    Success = false,
-                    Data = null,
-                    Message = ex.Message
-                });
-            }
+                Success = true,
+                Data = response,
+                Message = "Danh nhap thanh cong"
+            });
         }
     }
 }

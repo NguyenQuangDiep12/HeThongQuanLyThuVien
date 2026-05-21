@@ -21,8 +21,7 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .IsRequired();
 
             builder.Property(br => br.ApprovedBy)
-                .HasColumnName("approved_by")
-                .IsRequired();
+                .HasColumnName("approved_by");
 
             builder.Property(br => br.BorrowCode)
                 .HasColumnName("borrow_code")

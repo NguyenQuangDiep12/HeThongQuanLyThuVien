@@ -7,7 +7,7 @@
         public int PublisherId { get; set; }
         public int AuthorId { get; set; }
         public string Title { get; set; } = string.Empty;
-        public string ISBN { get; set; } = string.Empty;
+        public string ISBN { get; set; } = string.Empty; // ma dinh danh duy nhat cua sach
         public int Quantity { get; set; }
         public int AvailableQuantity { get; set; }
         public string Language { get; set; } = string.Empty;

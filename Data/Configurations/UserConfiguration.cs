@@ -45,13 +45,12 @@ namespace HeThongQuanLyThuVien.Data.Configurations
 
             builder.Property(u => u.Address)
                 .HasColumnName("address")
-                .IsRequired()
                 .HasMaxLength(200);
 
             builder.Property(u => u.LibraryCardCode)
                 .HasColumnName("library_card_code")
                 .IsRequired()
-                .HasMaxLength(20);
+                .HasMaxLength(100);
 
             builder.HasIndex(u => u.LibraryCardCode)
                 .IsUnique();
@@ -61,6 +60,12 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .IsRequired()
                 .HasConversion<string>()
                 .HasDefaultValue(CardStatus.PENDING);
+
+            builder.Property(u => u.CreatedAt)
+                .HasColumnName("created_at")
+                .HasDefaultValueSql("GETUTCDATE()");
+            builder.Property(u => u.UpdatedAt)
+                .HasColumnName("updated_at");
 
             // Relationships
             builder.HasOne(u => u.Role)

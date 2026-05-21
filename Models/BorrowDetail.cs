@@ -8,7 +8,7 @@ namespace HeThongQuanLyThuVien.Models
         public int BorrowId { get; set; }
         public int BookId { get; set; }
         public int Quantity { get; set; }
-        public ItemBorrowedStatus ItemBorrowedStatus { get; set; } = ItemBorrowedStatus.BORROWING;
+        public ItemBorrowedStatus Status { get; set; } = ItemBorrowedStatus.BORROWING;
 
         // Navigation
         public BorrowRecord BorrowRecord { get; set; } = null!;
