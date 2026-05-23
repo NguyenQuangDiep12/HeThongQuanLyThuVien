@@ -12,6 +12,7 @@
 
 <details>
 <summary><b>Auth</b></summary>
+	
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | POST | /auth/register | Đăng ký tài khoản | Public |
