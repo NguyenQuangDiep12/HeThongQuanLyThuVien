@@ -5,21 +5,24 @@
 - Microsoft.EntityFrameworkCore.Design --version 8.0.0
 - Microsoft.EntityFrameworkCore.Tools --version 8.0.0
 
+---
+
 ## endpoint xay dung
+> *Ky hieu quyen truy cap: Reader(Owner), Staff, Admin*
 
-### Auth
-
+<details>
+<summary><b>Auth</b></summary>
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | POST | /auth/register | Đăng ký tài khoản | Public |
 | POST | /auth/login | Đăng nhập tài khoản | Public |
 | POST | /auth/change-password | Thay đổi mật khẩu | Owner |
 | POST | /auth/forgot-password | Quên mật khẩu | Public | 
-
+</details>
 ---
 
-
-### User
+<details>
+<summary><b>User</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -32,10 +35,11 @@
 | POST | /staff | Thêm nhân viên | Admin |
 | GET | /staffs | Danh sách nhân viên | Admin |
 | PUT | /staff/:id | Cập nhật thông tin nhân viên | Admin |
-
+</details>
 ---
 
-### Book
+<details>
+<summary><b>Book</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -44,11 +48,11 @@
 | POST | /books | Thêm sách mới | Staff/Admin |
 | PUT | /books/:id | Cập nhật thông tin sách | Staff/Admin |
 | DELETE | /books/:id | Xóa đầu sách | Admin |
-
+</details>
 ---
 
-
-### BookCopy
+<details>
+<summary><b>BookCopy</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -58,11 +62,11 @@
 | PUT | /book-copies/:id | Cập nhật tình trạng bản sao | Staff/Admin |
 | PATCH | /book-copies/:id/status | Thay đổi trạng thái bản sao | Staff/Admin |
 | DELETE | /book-copies/:id | Xóa bản sao sách | Staff/Admin |
-
+</details>
 ---
 
-
-### Categories
+<details>
+<summary><b>Categories</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -71,9 +75,11 @@
 | POST | /categories | Thêm danh mục | Staff/Admin |
 | PUT | /categories/:id | Cập nhật danh mục | Staff/Admin |
 | DELETE | /categories/:id | Xóa danh mục | Admin |
-
+</details>
 ---
-### Author
+
+<details>
+<summary><b>Author</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -82,9 +88,11 @@
 | POST | /authors | Thêm tác giả | Staff/Admin |
 | PUT | /authors/:id | Cập nhật tác giả | Staff/Admin |
 | DELETE | /authors/:id | Xóa tác giả | Admin |
-
+</details>
 ---
-### Publisher
+
+<details>
+<summary><b>Publisher</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -93,11 +101,12 @@
 | POST | /publishers | Thêm nhà xuất bản | Staff/Admin |
 | PUT | /publishers/:id | Cập nhật nhà xuất bản | Staff/Admin |
 | DELETE | /publishers/:id | Xóa nhà xuất bản | Admin |
-
+</details>
 ---
 
 
-### Borrow / Return
+<details>
+<summary><b>Borrow / Return</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -109,11 +118,12 @@
 | PATCH | /borrow-records/:id/return | Xác nhận trả sách | Staff/Admin |
 | PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin |
 | PATCH | /borrow-records/:id/extend | Gia hạn sách | Staff/Admin |
-
+</details>
 ---
 
 
-### Fine
+<details>
+<summary><b>Fine</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -122,11 +132,11 @@
 | GET | /users/:id/fines | Theo dõi vi phạm của người dùng | Owner/Staff/Admin |
 | GET | /fines/:id | Chi tiết phiếu phạt | Staff/Admin |
 | PATCH | /fines/:id/pay | Xác nhận đã thanh toán | Staff/Admin |
-
+</details>
 ---
 
-
-### Reservation
+<details>
+<summary><b>Reservation</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
@@ -135,26 +145,29 @@
 | PATCH | /reservations/:id/cancel | Hủy đặt trước | Staff/Admin |
 | PATCH | /reservations/:id/complete | Chuyển phiếu đặt trước thành phiếu mượn | Staff/Admin |
 
+</details>
 ---
 
-### Notifications
+<details>
+<summary><b>Notifications</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | GET | /notifications | Danh sách thông báo | Reader |
 | PATCH | /notifications/read-all | Đánh dấu tất cả thông báo là đã đọc | Reader |
-
+</details>
 ---
 
 
-### Statistics
+<details>
+<summary><b>Statistics</b></summary>
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | GET | /stats/overview | Thống kê tổng quan sách, phiếu mượn, người dùng | Admin |
 | GET | /stats/overdue | Danh sách phiếu mượn quá hạn | Admin |
 | GET | /stats/top-books | Danh sách sách được mượn nhiều nhất | Admin |
-
+</details>
 ---
 
 
