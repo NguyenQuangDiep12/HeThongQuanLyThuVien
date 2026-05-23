@@ -18,8 +18,8 @@ namespace HeThongQuanLyThuVien.Services
         {
             // kiem tra xem id cua sach da tao chua
             // 1. Tao roi thi ko cho tao nua
-            var IsCreated = await _context.Books.FirstOrDefaultAsync(b => b.ISBN == request.ISBN);
-            if(IsCreated != null)
+            var isCreated = await _context.Books.AnyAsync(b => b.ISBN == request.ISBN, ct);
+            if(isCreated)
             {
                 throw new Exception("Book already created");
             }
@@ -37,8 +37,8 @@ namespace HeThongQuanLyThuVien.Services
                 CoverImage = request.CoverImage,
             };
 
-            await _context.Books.AddAsync(book);
-            await _context.SaveChangesAsync();
+            await _context.Books.AddAsync(book, ct);
+            await _context.SaveChangesAsync(ct);
 
             return new BookResponse(
                 book.BookId,
@@ -54,25 +54,43 @@ namespace HeThongQuanLyThuVien.Services
 
         public async Task DeleteBook(int BookId, CancellationToken ct = default)
         {
-            var existsBook = await _context.Books.FirstOrDefaultAsync(b => b.BookId == BookId);
-            if(existsBook == null)
+            var deletedRows = await _context.Books
+                .Where(b => b.BookId == BookId)
+                .ExecuteDeleteAsync(ct);
+
+            if(deletedRows == 0)
             {
                 throw new Exception("Book not found!");
             }
-
-            _context.Books.Remove(existsBook);
-            await _context.SaveChangesAsync();
         }
 
-        public async Task<PaginationResponse<BookResponse>> GetRangeBooks(PaginationRequest request, CancellationToken ct = default)
+        public async Task<PaginationResponse<BookResponse>> GetRangeBooks(BookQueryRequest request, CancellationToken ct = default)
         {
-            var query = _context.Books.AsNoTracking().OrderBy(b => b.BookId);
+            var page = request.Page < 1 ? 1 : request.Page;
+            var query = _context.Books.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(request.Keyword))
+            {
+                var keyword = request.Keyword.Trim();
+                query = query.Where(b => b.Title.Contains(keyword) || b.ISBN.Contains(keyword));
+            }
+
+            if (request.CategoryId.HasValue)
+            {
+                query = query.Where(b => b.CategoryId == request.CategoryId.Value);
+            }
+
+            if (request.AuthorId.HasValue)
+            {
+                query = query.Where(b => b.AuthorId == request.AuthorId.Value);
+            }
 
             // tong so sach
             var total = await query.CountAsync(ct);
 
             var getRangeBook = await query
-                .Skip((request.Page - 1) * request.PageSize)
+                .OrderBy(b => b.BookId)
+                .Skip((page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(b => new BookResponse
                 (
@@ -84,59 +102,61 @@ namespace HeThongQuanLyThuVien.Services
                    b.Language,
                    b.Description,
                    b.CoverImage
-                )).ToListAsync();
+                )).ToListAsync(ct);
 
             return new PaginationResponse<BookResponse>
             {
                 Items = getRangeBook,
-                Page = request.Page,
+                Page = page,
                 PageSize = request.PageSize,
                 TotalRecords = total
             };
         }
         public async Task<bool> UpdateBook(int BookId, UpdateBookRequest request, CancellationToken ct = default)
         {
-            // Kiem tra xem co ton tai sach hay khong 
-            var existsBook = await _context.Books.FirstOrDefaultAsync(b => b.BookId==BookId);
-            if(existsBook == null)
+            var updatedRows = await _context.Books
+                .Where(b => b.BookId == BookId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(b => b.Title, request.Title)
+                    .SetProperty(b => b.ISBN, request.ISBN)
+                    .SetProperty(b => b.CategoryId, request.CategoryId)
+                    .SetProperty(b => b.AuthorId, request.AuthorId)
+                    .SetProperty(b => b.PublisherId, request.PublisherId)
+                    .SetProperty(b => b.UpdatedAt, DateTime.UtcNow), ct);
+
+            if(updatedRows == 0)
             {
                 throw new Exception("Book Not Found!");
             }
-
-            // Update truc tiep tren entity dang query 
-            // EF core dang tracking truc tiep tren entity do
-            existsBook.Title = request.Title;
-            existsBook.ISBN = request.ISBN;
-            existsBook.CategoryId = request.CategoryId;
-            existsBook.AuthorId = request.AuthorId;
-            existsBook.PublisherId = request.PublisherId;
-
-            await _context.SaveChangesAsync(ct);
 
             return true;
         }
         
         public async Task<BookDetailResponse> GetBookById(int BookId, CancellationToken ct = default)
         {
-            var book = await _context.Books.FirstOrDefaultAsync(b => b.BookId == BookId, ct);
+            var book = await _context.Books
+                .AsNoTracking()
+                .Where(b => b.BookId == BookId)
+                .Select(b => new BookDetailResponse(
+                    b.BookId,
+                    b.Title,
+                    b.ISBN,
+                    b.Language,
+                    b.Description,
+                    b.Quantity,
+                    b.AvailableQuantity,
+                    b.CoverImage,
+                    b.CreatedAt,
+                    b.UpdatedAt
+                ))
+                .FirstOrDefaultAsync(ct);
 
             if(book == null)
             {
                 throw new Exception("Book Not Found!");
             }
 
-            return new BookDetailResponse(
-                    book.BookId,
-                    book.Title,
-                    book.ISBN,
-                    book.Language,
-                    book.Description,
-                    book.Quantity,
-                    book.AvailableQuantity,
-                    book.CoverImage,
-                    book.CreatedAt,
-                    book.UpdatedAt
-                );
+            return book;
         }
     }
 }

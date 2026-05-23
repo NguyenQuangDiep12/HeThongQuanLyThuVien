@@ -1,4 +1,4 @@
-# Library Management System
+﻿# Library Management System
 
 ## Used Package
 - Microsoft.EntityFrameworkCore.SqlServer --version 8.0.0
@@ -7,95 +7,94 @@
 
 ## endpoint xay dung
 **Auth**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Post	| /auth/register | Dang ky tai khoan |
-|	Post	| /auth/login	| Dang nhap tai khoan |
-|	Post	| /auth/logout	|	Dang xuat	|
+| Method	| Endpoint		|  Description	|	Access	|
+| --------- | :-----------:	| :-----------:	| ---------: |
+|	Post	| /auth/register | Dang ky tai khoan  |		public		|
+|	Post	| /auth/login	| Dang nhap tai khoan |		public		|
 
 **User**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Get		| /users | Danh sach nguoi dung (Staff, Admin) |
-|	Get		| /users/:id	| Xem chi tiet nguoi dung |
-|	Put		| /users/:id	|	Cap nhat thong tin	|
-|	Patch	| /users/:id/card-status |	khoa / mo the thu vien |
-|	Get		| /users/:id/borrow-history | Lich su muon cua user	|
-|	Post	| /users/staff	|	Them Staff (Admin) |
+| Method	| Endpoint		|  Description	|	Access	|
+| --------- | :-----------:	| :-----------:	| ---------:	|
+|	Get		| /users		| Danh sach nguoi dung | (Staff, Admin) |
+|	Get		| /users/:id	| Xem chi tiet nguoi dung | (Owner, STAFF, ADMIN) |
+|	Put		| /users/:id	|	Cap nhat thong tin	|	Owner, STAFF		|
+|	Patch	| /users/:id/card-status |	khoa / mo the thu vien |	Admin	|
+|	Get		| /users/:id/borrow-history | Lich su muon cua user	|	Owner, STAFF, ADMIN		|
+|	Post	| /users/staff	|	Them Staff	|		ADMIN		|
 
 **Book**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Get		| /books		| Tim kiem sach |
-|	Get		| /books/:id	| Chi tiet sach |
-|	Post	| /books		|	Them sach moi (Admin)	|
-|	PUT		| /books/:id	| Cap nhat thong tin sach (Admin)	|
-|	Delete	| /Books/:id	| Xoa chi tiet sach			|
+| Method	| Endpoint		|  Description	|		Access		|	
+| --------- | :-----------:	| :-----------:	|	--------------:	|
+|	Get		| /books		| Tim kiem sach |	public	|
+|	Get		| /books/:id	| Chi tiet sach |	public	|
+|	Post	| /books		|	Them sach moi|		Staff,Admin		|
+|	PUT		| /books/:id	| Cap nhat thong tin sach	|	 Staff,(Admin)	|
+|	Delete	| /Books/:id	| Xoa chi tiet sach			|	Admin		|
 
 **Categories / Author / Publisher**
-| Method | Endpoint        | Description                      |
-| ------ | :------------: | ---------------: |
-| GET    | /categories     | Danh sach danh muc           |
-| GET    | /categories/:id | Chi tiet danh muc                |
-| POST   | /categories     | Them danh muc (Admin, Staff)     |
-| PUT    | /categories/:id | Cap nhat danh muc (Admin, Staff) |
-| DELETE | /categories/:id | Xoa danh muc (Admin)             |
+| Method | Endpoint        | Description |			Access		|
+| ------ | :------------: | :---------------: |	--------------:	|
+| GET    | /categories     | Danh sach danh muc |	public	|
+| GET    | /categories/:id | Chi tiet danh muc  |	public	|
+| POST   | /categories     | Them danh muc		|	(Admin, Staff) |
+| PUT    | /categories/:id | Cap nhat danh muc	|   (Admin, Staff) |
+| DELETE | /categories/:id | Xoa danh muc		|	(Admin)        |
 
-| Method | Endpoint     | Description                     |
-| ------ | :------------: | --------------------: |
-| GET    | /authors     | Danh sach tac gia               |
-| GET    | /authors/:id | Chi tiet tac gia                |
-| POST   | /authors     | Them tac gia (Admin, Staff)     |
-| PUT    | /authors/:id | Cap nhat tac gia (Admin, Staff) |
-| DELETE | /authors/:id | Xoa tac gia (Admin)             |
+| Method | Endpoint     | Description		|		Access		  |
+| ------ | :------------: | :--------------------: |	----------:	|
+| GET    | /authors     | Danh sach tac gia |	public				|
+| GET    | /authors/:id | Chi tiet tac gia  |	public				|
+| POST   | /authors     | Them tac gia		|   (Admin, Staff)		|
+| PUT    | /authors/:id | Cap nhat tac gia	|   (Admin, Staff)		|
+| DELETE | /authors/:id | Xoa tac gia		|	(Admin)             |
 
-| Method | Endpoint        | Description      |
-| ------ | :-------------: | ---------------:	 |
-| GET    | /publishers     | Danh sach NXB       |
-| GET    | /publishers/:id | Chi tiet NXB        |
-| POST   | /publishers     | Them NXB (Admin, Staff)     |
-| PUT    | /publishers/:id | Cap nhat NXB (Admin, Staff) |
-| DELETE | /publishers/:id | Xoa NXB (Admin)             |
+| Method | Endpoint        | Description      |		Access		|
+| ------ | :-------------: | :---------------:|	-----------:	|
+| GET    | /publishers     | Danh sach NXB    |		public		|
+| GET    | /publishers/:id | Chi tiet NXB     |		public		|
+| POST   | /publishers     | Them NXB		  | (Admin, Staff)	|
+| PUT    | /publishers/:id | Cap nhat NXB     | (Admin, Staff)	|
+| DELETE | /publishers/:id | Xoa NXB		  |		 (Admin)	|
 
 
 **Borrow / Return**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Get		| /borrow-records | Danh sach phieu muon (Admin/ Staff) |
-|	Get	| /borrow-records/:id	| Chi tiet phieu muon (Admin/Staff) |
-|	Post	| /borrow-record	|	Tao phieu muon moi	(Admin/Staff) |
-|	Patch	| /borrow-records/:id/approve	|	Staff duyet phieu muon (Admin/Staff)	|
-|	Patch	| /borrow-records/:id/return	|	Xac nhan tra sach	(Admin/Staff)	|
-|	Patch	| /borrow-records/:id/cancel	|	Huy phieu muon	(Admin/Staff)	|
-|	Patch	| /borrow-records/:id/extend	|   Gia han sach	|
+| Method	| Endpoint		|  Description	|		Access		|
+| --------- | :-----------:	| :-----------:	|	-------------:	|
+|	Get		| /borrow-records | Danh sach phieu muon	| (Admin/ Staff) |
+|	Get	| /borrow-records/:id	| Chi tiet phieu muon	| (Owner/Admin/Staff) |
+|	Post	| /borrow-record	|	Tao phieu muon moi	|	(Admin/Staff) |
+|	Patch	| /borrow-records/:id/approve	|	Staff duyet phieu muon |	(Admin/Staff)	|
+|	Patch	| /borrow-records/:id/return	|	Xac nhan tra sach |		(Admin/Staff)	|
+|	Patch	| /borrow-records/:id/cancel	|	Huy phieu muon	|	(Owner/Admin/Staff)	|
+|	Patch	| /borrow-records/:id/extend	|   Gia han sach	|	(Owner/Admin/Staff)	|
 
 **Fine**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Get		| /fines		| Danh sach phieu phat (Admin/Staff) |
-|	Get		| /fines/:id	|  Chi tiet phieu phat	(Admin/Staff) |
+| Method	| Endpoint		|  Description	|		Access		|
+| --------- | :-----------:	| :-----------:	| ----------------: |
+|	Get		| /fines		| Danh sach phieu phat | (Admin/Staff) |
+|	Get		| /fines/:id	|  Chi tiet phieu phat |	(Admin/Staff) |
 |	Patch	| /fines/:id/pay	|	Xac nhan da thanh toan (Admin/Staff)	|
 
 **Reservation**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Get		| /reservations		| Danh sach dat truoc (User) |
-|	Post	| /reservations	|  Dat truoc sach (User) |
-|	Patch	| /reservations/:id/cancel	|	Huy dat truoc (User)	|
-|	Patch	| /reservations/:id/complete|	Dat thanh cong => chuyen sang phieu muon |
+| Method	| Endpoint		|  Description	|		Access		|
+| --------- | :-----------:	| :-----------:	| ----------------:	|
+|	Get		| /reservations		| Danh sach dat truoc (Staff/Admin) |
+|	Post	| /reservations	|  Dat truoc sach|		 (Reader)	|
+|	Patch	| /reservations/:id/cancel	|	Huy dat truoc	| (Owner)	|
+|	Patch	| /reservations/:id/complete|	chuyen sang phieu muon |	(Staff/Admin)	|
 
-**Notifications & Logs**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Get		| /notifications		| Thong bao cua User |
-|	Patch	| /notifications/read-all	|	Doc tat ca	|
+**Notifications**
+| Method	| Endpoint		|  Description	|		Access		|
+| --------- | :-----------:	| :-----------:	| ----------------:	|
+|	Get		| /notifications		| Thong bao |	 (Reader)	|
+|	Patch	| /notifications/read-all	|	Danh dau da doc tat ca |	(Reader)	| // chua co truogn IsRead
 
 **statistics**
-| Method	| Endpoint		|  Description	|
-| --------- | :-----------:	| -----------:	|
-|	Get		| /stats/overview			| Tong quan sach, phieu muon, user (Admin) |
-|	Get		| /stats/overdue			|  Danh sach phieu muon qua han (Admin) |
-|	Get		| /stats/top-books	|	Sach duoc muon nhieu nhat (Admin)	|
+| Method	| Endpoint		|  Description	|		Access		|
+| --------- | :-----------:	| :-----------:	| ----------------:	|
+|	Get		| /stats/overview			| Tong quan sach, phieu muon, user (Thong ke tong quan) | (Admin) |
+|	Get		| /stats/overdue			|  Danh sach phieu muon qua han	| (Admin) |
+|	Get		| /stats/top-books	|	Sach duoc muon nhieu nhat	| (Admin)	|
 
 - Ky hieu (Vai tro): vai tro cua nguoi dung trong api do Reader/Staff/Admin
 

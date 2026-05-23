@@ -6,7 +6,6 @@ using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
 
 namespace HeThongQuanLyThuVien.Services
 {
@@ -27,12 +26,18 @@ namespace HeThongQuanLyThuVien.Services
             if (emailExists)
                 throw new ConflictException("Email da ton tai!"); // request hop le, email dung format, nhung du lieu bi xung dot voi du lieu trong db
 
-            var readerRole = await _context.Roles
-                .FirstOrDefaultAsync(r => r.RoleName == RoleName.READER, ct);
+            var readerRoleId = await _context.Roles
+                .AsNoTracking()
+                .Where(r => r.RoleName == RoleName.READER)
+                .Select(r => (int?)r.RoleId)
+                .FirstOrDefaultAsync(ct);
+
+            if (readerRoleId is null)
+                throw new NotFoundException("Khong tim thay vai tro nguoi doc!");
 
             var user = new User
             {
-                RoleId = readerRole!.RoleId,
+                RoleId = readerRoleId.Value,
                 Email = request.Email,
                 FullName = request.FullName,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
@@ -40,32 +45,34 @@ namespace HeThongQuanLyThuVien.Services
                 Address = string.Empty,
                 LibraryCardCode = GenerateLibraryCardCode(),
                 CardStatus = CardStatus.PENDING,
-                Role = readerRole,
             };
 
             await _context.Users.AddAsync(user, ct);
             await _context.SaveChangesAsync(ct);
 
-            return CreateLoginResponse(user);
+            return CreateAuthResponse(user.UserId, user.FullName, user.Email, RoleName.READER);
         }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
-            var sw = Stopwatch.StartNew();
             // 1. Kiem tra xem Email nguoi dung da dang ky chua
             var userExist = await _context.Users
                 .AsNoTracking()
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Email == request.Email);
-
-            Console.WriteLine($"Query DB: {sw.ElapsedMilliseconds} ms");
+                .Where(u => u.Email == request.Email)
+                .Select(u => new
+                {
+                    u.UserId,
+                    u.FullName,
+                    u.Email,
+                    u.PasswordHash,
+                    u.Role.RoleName
+                })
+                .FirstOrDefaultAsync(ct);
 
             if (userExist == null)
             {
                 throw new UnauthorizedException("Tai khoan Email khong ton tai!");
             }
-
-            sw.Restart();
 
             // 2. nguoi dung ton tai kiem tra mat khau 
             bool IsPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.Password, userExist.PasswordHash);
@@ -73,24 +80,31 @@ namespace HeThongQuanLyThuVien.Services
             {
                 throw new UnauthorizedException("Email hoac mat khau khong dung!");
             }
-            Console.WriteLine($"BCrypt Verify: {sw.ElapsedMilliseconds} ms");
 
-            return CreateLoginResponse(userExist);
+            return CreateAuthResponse(userExist.UserId, userExist.FullName, userExist.Email, userExist.RoleName);
         }
 
         // Private helpers
-        private LoginResponse CreateLoginResponse(User user)
+        private LoginResponse CreateAuthResponse(int userId, string fullName, string email, RoleName roleName)
         {
+            var user = new User
+            {
+                UserId = userId,
+                FullName = fullName,
+                Email = email,
+                Role = new Role { RoleName = roleName }
+            };
+
             var accessToken = _jwtService.GenerateToken(user);
 
             return new LoginResponse(
                 accessToken,
                 new UserInfoResponse
                 {
-                    UserId = user.UserId,
-                    FullName = user.FullName,
-                    Email = user.Email,
-                    Role = user.Role.RoleName.ToString(),
+                    UserId = userId,
+                    FullName = fullName,
+                    Email = email,
+                    Role = roleName.ToString(),
                 }
             );
         }
