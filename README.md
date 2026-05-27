@@ -12,11 +12,12 @@
 
 <details>
 <summary><b>Auth</b></summary>
+
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | POST | /auth/register | Đăng ký tài khoản | Public |
 | POST | /auth/login | Đăng nhập tài khoản | Public |
-| POST | /auth/change-password | Thay đổi mật khẩu | Owner |
+| POST | /auth/reset-password | Thay đổi mật khẩu | Owner |
 | POST | /auth/forgot-password | Quên mật khẩu | Public | 
 </details>
 ---
@@ -28,13 +29,15 @@
 |---|---|---|---|
 | GET | /users | Danh sách người dùng | Staff/Admin |
 | GET | /users/:id | Xem chi tiết người dùng | Owner/Staff/Admin |
-| PUT | /users/:id | Cập nhật thông tin người dùng | Staff/Admin |
+| PUT | /users/:id | Cap nhat thong tin nguoi dung | Staff/Admin |
 | PUT | /users/me/profile | Reader tự cập nhật hồ sơ cá nhân | Owner |
 | PATCH | /users/:id/card-status | Khóa / mở thẻ thư viện | Admin |
 | PATCH | /users/:id/status | Khóa / mở tài khoản | Admin |
 | POST | /staff | Thêm nhân viên | Admin |
 | GET | /staffs | Danh sách nhân viên | Admin |
 | PUT | /staff/:id | Cập nhật thông tin nhân viên | Admin |
+
+- staff can admin cap nhat thong tin
 </details>
 ---
 
@@ -61,7 +64,7 @@
 | POST | /books/:id/copies | Thêm bản sao sách | Staff/Admin |
 | PUT | /book-copies/:id | Cập nhật tình trạng bản sao | Staff/Admin |
 | PATCH | /book-copies/:id/status | Thay đổi trạng thái bản sao | Staff/Admin |
-| DELETE | /book-copies/:id | Xóa bản sao sách | Staff/Admin |
+| DELETE | /book-copies/:id | Xóa bản sao sách | Admin |
 </details>
 ---
 
@@ -113,7 +116,7 @@
 | GET | /borrow-records | Danh sách phiếu mượn | Staff/Admin |
 | GET | /users/:id/borrow-records | Lịch sử mượn sách của người dùng | Owner/Staff/Admin |
 | GET | /borrow-records/:id | Chi tiết phiếu mượn | Owner/Staff/Admin |
-| POST | /borrow-records/:id/extension-requests | Gửi yêu cầu gia hạn sách | Reader |
+| POST | /borrow-records/:id/extension-requests | Gửi yêu cầu gia hạn sách | Owner |
 | POST | /borrow-records | Tạo phiếu mượn mới | Staff/Admin |
 | PATCH | /borrow-records/:id/return | Xác nhận trả sách | Staff/Admin |
 | PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin |
@@ -129,7 +132,7 @@
 |---|---|---|---|
 | GET | /fines | Danh sách phiếu phạt | Staff/Admin |
 | POST | /fines | Tạo phiếu phạt | Staff/Admin |
-| GET | /users/:id/fines | Theo dõi vi phạm của người dùng | Owner/Staff/Admin |
+| GET | /users/:id/fines | Theo dõi vi phạm của người dùng | Staff/Admin |
 | GET | /fines/:id | Chi tiết phiếu phạt | Staff/Admin |
 | PATCH | /fines/:id/pay | Xác nhận đã thanh toán | Staff/Admin |
 </details>
@@ -144,7 +147,6 @@
 | POST | /reservations | Tạo phiếu đặt trước sách cho bạn đọc | Staff/Admin |
 | PATCH | /reservations/:id/cancel | Hủy đặt trước | Staff/Admin |
 | PATCH | /reservations/:id/complete | Chuyển phiếu đặt trước thành phiếu mượn | Staff/Admin |
-
 </details>
 ---
 
@@ -153,8 +155,8 @@
 
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
-| GET | /notifications | Danh sách thông báo | Reader |
-| PATCH | /notifications/read-all | Đánh dấu tất cả thông báo là đã đọc | Reader |
+| GET | /notifications | Danh sách thông báo | Owner |
+| PATCH | /notifications/read-all | Đánh dấu tất cả thông báo là đã đọc | Owner |
 </details>
 ---
 
@@ -173,8 +175,9 @@
 
 ## Y nghia cac truong he thong
 ```
-### Users Table
-### Users Table
+<details>
+
+<summary> Users Table </summary>
 | Field | Type | Description |
 |---|---|---|
 | UserId | int | Khoa chinh nguoi dung |
@@ -190,10 +193,13 @@
 | UpdatedAt | datetime | Ngay cap nhat |
 
 Status: Active, Locked
+
+<details>
 ```
 
 ```
-### Roles Table
+<details>
+<summary> Roles Table </summary>
 | Field | Type | Description |
 |---|---|---|
 | RoleId | int | Khoa chinh Role |
@@ -201,10 +207,13 @@ Status: Active, Locked
 | Description | nvarchar(255) | Mo ta vai tro |
 
 RoleName: READER, STAFF, ADMIN
+</details>
 ```
 
 ```
-### LibraryCard Table
+<details>
+
+<summary> LibraryCard Table </summary>
 | Field | Type | Description |
 |---|---|---|
 | CardId | int | Khoa chinh the |
@@ -216,10 +225,13 @@ RoleName: READER, STAFF, ADMIN
 
 Status: Active, Expired, Blocked
 
+</details>
 ```
 
 ```
-### Books Table
+<details>
+
+<summary> Books Table </summary>
 | Field | Type | Description |
 |---|---|---|
 | BookId | int | Khoa chinh dau sach |
@@ -233,10 +245,13 @@ Status: Active, Expired, Blocked
 | CreatedAt | datetime | Ngay tao |
 | UpdatedAt | datetime | Ngay cap nhat |
 
+</details>
 ```
 
 ```
-### BookCopies Table
+<details>
+
+<summary> BookCopies Table </summary>
 | Field | Type | Description |
 |---|---|---|
 | CopyId | int | Khoa chinh ban sao |
@@ -252,16 +267,20 @@ Status: Available, Borrowed, Reserved, Lost, Damaged
 
 Condition: Normal, Torn, Damaged
 
+</details>
 ```
 
 ```
-### Categories Table
+<details>
+
+<summary> Categories Table </summary>
 | Field | Type | Description |
 |---|---|---|
 | CategoryId | int | Khoa chinh danh muc |
 | CategoryName | nvarchar(255) | Ten danh muc |
 | Description | nvarchar(500) | Mo ta danh muc |
 
+</details>
 ```
 
 ```

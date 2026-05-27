@@ -8,7 +8,7 @@ namespace HeThongQuanLyThuVien.Models
         public int UserId { get; set; }
         public int BookId { get; set; }
         public DateTime ExpiryDate { get; set; }
-        public ReservationStatus Status { get; set; } = ReservationStatus.WAITING;
+        public ReservationStatus Status { get; set; } = ReservationStatus.Waiting;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 

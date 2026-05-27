@@ -14,7 +14,8 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(r => r.ReservationId);
 
             builder.Property(r => r.ReservationId)
-                .HasColumnName("reservation_id");
+                .HasColumnName("reservation_id")
+                .ValueGeneratedOnAdd();
 
             builder.Property(r => r.UserId)
                 .HasColumnName("user_id")
@@ -31,23 +32,27 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.Property(r => r.Status)
                 .HasColumnName("status")
                 .IsRequired()
+                .HasMaxLength(30)
                 .HasConversion<string>()
-                .HasDefaultValue(ReservationStatus.WAITING);
+                .HasDefaultValue(ReservationStatus.Waiting);
 
             builder.Property(r => r.CreatedAt)
                 .HasColumnName("created_at")
-                .HasDefaultValueSql("GETUTCDATE()")
-                .IsRequired();
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
 
             builder.Property(r => r.UpdatedAt)
                 .HasColumnName("updated_at");
 
             // Relationships
+
+            // Reservation belongs to User
             builder.HasOne(r => r.User)
                 .WithMany(u => u.Reservations)
                 .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // Reservation dat cho mot Book
             builder.HasOne(r => r.Book)
                 .WithMany(b => b.Reservations)
                 .HasForeignKey(r => r.BookId)

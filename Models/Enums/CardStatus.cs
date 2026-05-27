@@ -2,8 +2,8 @@
 {
     public enum CardStatus
     {
-        ACTIVE,
-        LOCK,
-        PENDING
+        Active,
+        Expired,
+        Blocked
     }
 }

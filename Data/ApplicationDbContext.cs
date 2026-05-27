@@ -21,6 +21,10 @@ namespace HeThongQuanLyThuVien.Data
         public DbSet<BorrowDetail> BorrowDetails { get; set; }
         public DbSet<Book> Books { get; set; }
         public DbSet<Author> Authors { get; set; }
+        public DbSet<LibraryCard> LibraryCards { get; set; }
+        public DbSet<BookCopy> BookCopies { get; set; }
+        public DbSet<BookAuthor> BookAuthors { get; set; }
+        public DbSet<BookCategory> BookCategories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

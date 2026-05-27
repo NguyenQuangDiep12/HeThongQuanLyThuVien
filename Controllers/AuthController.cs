@@ -44,5 +44,32 @@ namespace HeThongQuanLyThuVien.Controllers
                 Message = "Danh nhap thanh cong"
             });
         }
+
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+        {
+            await _authService.ForgotPasswordAsync(request, ct);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Da gui mat khau moi qua email"
+            });
+        }
+
+        [Authorize(Roles = "Reader,Staff,Admin")]
+        [HttpPut("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+        {
+            await _authService.ResetPasswordAsync(request, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Doi mat khau thanh cong"
+            });
+        }
     }
 }

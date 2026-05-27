@@ -4,10 +4,10 @@
     {
         public int AuthorId { get; set; }
         public string AuthorName { get; set; } = string.Empty;
-        public string Biography { get; set; } = string.Empty;
-        public string AuthorUrl { get; set; } = string.Empty;
+        public string? Biography { get; set; }
+        public string? AuthorUrl { get; set; }
 
         // Navigation
-        public ICollection<Book> Books { get; set; } = new List<Book>();
+        public ICollection<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
     }
 }

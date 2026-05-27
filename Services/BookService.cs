@@ -1,6 +1,7 @@
 ﻿using HeThongQuanLyThuVien.Data;
 using HeThongQuanLyThuVien.DTOs.Books;
 using HeThongQuanLyThuVien.DTOs.Shared;
+using HeThongQuanLyThuVien.Exceptions;
 using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -10,153 +11,164 @@ namespace HeThongQuanLyThuVien.Services
     public class BookService : IBookService
     {
         private readonly ApplicationDbContext _context;
-        public BookService(ApplicationDbContext context) 
+
+        public BookService(ApplicationDbContext context)
         {
             _context = context;
         }
+
         public async Task<BookResponse> CreateBook(CreateBookRequest request, CancellationToken ct = default)
         {
-            // kiem tra xem id cua sach da tao chua
-            // 1. Tao roi thi ko cho tao nua
-            var isCreated = await _context.Books.AnyAsync(b => b.ISBN == request.ISBN, ct);
-            if(isCreated)
-            {
-                throw new Exception("Book already created");
-            }
-            // 2. Neu chua tao thi tao sach
+            bool isCreated = await _context.Books.AnyAsync(b => b.ISBN == request.ISBN, ct);
+            if (isCreated)
+                throw new ConflictException("Sach voi ISBN nay da ton tai!");
+
+            // Validate author va category ton tai
+            bool authorExists = await _context.Authors.AnyAsync(a => a.AuthorId == request.AuthorId, ct);
+            bool categoryExists = await _context.Categories.AnyAsync(c => c.CategoryId == request.CategoryId, ct);
+
+            if (!authorExists) throw new NotFoundException("Tac gia khong ton tai!");
+            if (!categoryExists) throw new NotFoundException("Danh muc khong ton tai!");
+
             var book = new Book
             {
+                PublisherId = request.PublisherId,
                 Title = request.Title,
                 ISBN = request.ISBN,
-                CategoryId = request.CategoryId,
-                PublisherId = request.PublisherId,
-                AuthorId = request.AuthorId,
-                Quantity = request.Quantity,
                 Language = request.Language,
                 Description = request.Description,
                 CoverImage = request.CoverImage,
+                AvailabilityCopies = 0, // ban sao se duoc them rieng qua BookCopy
+                CreatedAt = DateTime.UtcNow,
             };
+
+            // Gan junction records thay vi set AuthorId/CategoryId truc tiep
+            book.BookAuthors = new List<BookAuthor> { new() { AuthorId = request.AuthorId } };
+            book.BookCategories = new List<BookCategory> { new() { CategoryId = request.CategoryId } };
 
             await _context.Books.AddAsync(book, ct);
             await _context.SaveChangesAsync(ct);
 
-            return new BookResponse(
-                book.BookId,
-                book.Title,
-                book.ISBN,
-                book.Quantity,
-                book.AvailableQuantity,
-                book.Language,
-                book.Description,
-                book.CoverImage
-            );
+            return MapToBookResponse(book);
         }
 
-        public async Task DeleteBook(int BookId, CancellationToken ct = default)
+        public async Task<bool> UpdateBook(int bookId, UpdateBookRequest request, CancellationToken ct = default)
         {
-            var deletedRows = await _context.Books
-                .Where(b => b.BookId == BookId)
+            var book = await _context.Books
+                .Include(b => b.BookAuthors)
+                .Include(b => b.BookCategories)
+                .FirstOrDefaultAsync(b => b.BookId == bookId, ct);
+
+            if (book is null)
+                throw new NotFoundException("Sach khong ton tai!");
+
+            book.Title = request.Title;
+            book.ISBN = request.ISBN;
+            book.UpdatedAt = DateTime.UtcNow;
+
+            // Cap nhat Author: xoa cu, them moi
+            book.BookAuthors.Clear();
+            book.BookAuthors.Add(new BookAuthor { BookId = bookId, AuthorId = request.AuthorId });
+
+            // Cap nhat Category: xoa cu, them moi
+            book.BookCategories.Clear();
+            book.BookCategories.Add(new BookCategory { BookId = bookId, CategoryId = request.CategoryId });
+
+            await _context.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public async Task DeleteBook(int bookId, CancellationToken ct = default)
+        {
+            int deletedRows = await _context.Books
+                .Where(b => b.BookId == bookId)
                 .ExecuteDeleteAsync(ct);
 
-            if(deletedRows == 0)
-            {
-                throw new Exception("Book not found!");
-            }
+            if (deletedRows == 0)
+                throw new NotFoundException("Sach khong ton tai!");
         }
 
         public async Task<PaginationResponse<BookResponse>> GetRangeBooks(BookQueryRequest request, CancellationToken ct = default)
         {
-            var page = request.Page < 1 ? 1 : request.Page;
+            int page = request.Page < 1 ? 1 : request.Page;
             var query = _context.Books.AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(request.Keyword))
             {
-                var keyword = request.Keyword.Trim();
-                query = query.Where(b => b.Title.Contains(keyword) || b.ISBN.Contains(keyword));
+                var kw = request.Keyword.Trim();
+                query = query.Where(b => b.Title.Contains(kw) || b.ISBN.Contains(kw));
             }
 
             if (request.CategoryId.HasValue)
-            {
-                query = query.Where(b => b.CategoryId == request.CategoryId.Value);
-            }
+                query = query.Where(b => b.BookCategories.Any(bc => bc.CategoryId == request.CategoryId.Value));
 
             if (request.AuthorId.HasValue)
-            {
-                query = query.Where(b => b.AuthorId == request.AuthorId.Value);
-            }
+                query = query.Where(b => b.BookAuthors.Any(ba => ba.AuthorId == request.AuthorId.Value));
 
-            // tong so sach
-            var total = await query.CountAsync(ct);
+            int total = await query.CountAsync(ct);
 
-            var getRangeBook = await query
+            var items = await query
                 .OrderBy(b => b.BookId)
                 .Skip((page - 1) * request.PageSize)
                 .Take(request.PageSize)
-                .Select(b => new BookResponse
-                (
-                   b.BookId,
-                   b.Title,
-                   b.ISBN,
-                   b.Quantity,
-                   b.AvailableQuantity,
-                   b.Language,
-                   b.Description,
-                   b.CoverImage
-                )).ToListAsync(ct);
+                .Select(b => new BookResponse(
+                    b.BookId,
+                    b.Title,
+                    b.ISBN,
+                    b.BookCopies.Count,
+                    b.AvailabilityCopies,
+                    b.Language,
+                    b.Description ?? string.Empty,
+                    b.CoverImage ?? string.Empty
+                ))
+                .ToListAsync(ct);
 
             return new PaginationResponse<BookResponse>
             {
-                Items = getRangeBook,
+                Items = items,
                 Page = page,
                 PageSize = request.PageSize,
                 TotalRecords = total
             };
         }
-        public async Task<bool> UpdateBook(int BookId, UpdateBookRequest request, CancellationToken ct = default)
-        {
-            var updatedRows = await _context.Books
-                .Where(b => b.BookId == BookId)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(b => b.Title, request.Title)
-                    .SetProperty(b => b.ISBN, request.ISBN)
-                    .SetProperty(b => b.CategoryId, request.CategoryId)
-                    .SetProperty(b => b.AuthorId, request.AuthorId)
-                    .SetProperty(b => b.PublisherId, request.PublisherId)
-                    .SetProperty(b => b.UpdatedAt, DateTime.UtcNow), ct);
 
-            if(updatedRows == 0)
-            {
-                throw new Exception("Book Not Found!");
-            }
-
-            return true;
-        }
-        
-        public async Task<BookDetailResponse> GetBookById(int BookId, CancellationToken ct = default)
+        public async Task<BookDetailResponse> GetBookById(int bookId, CancellationToken ct = default)
         {
             var book = await _context.Books
                 .AsNoTracking()
-                .Where(b => b.BookId == BookId)
+                .Where(b => b.BookId == bookId)
                 .Select(b => new BookDetailResponse(
                     b.BookId,
                     b.Title,
                     b.ISBN,
                     b.Language,
-                    b.Description,
-                    b.Quantity,
-                    b.AvailableQuantity,
-                    b.CoverImage,
+                    b.Description ?? string.Empty,
+                    b.BookCopies.Count,
+                    b.AvailabilityCopies,
+                    b.CoverImage ?? string.Empty,
                     b.CreatedAt,
                     b.UpdatedAt
                 ))
                 .FirstOrDefaultAsync(ct);
 
-            if(book == null)
-            {
-                throw new Exception("Book Not Found!");
-            }
+            if (book is null)
+                throw new NotFoundException("Sach khong ton tai!");
 
             return book;
         }
+
+        // Private helpers
+
+        private static BookResponse MapToBookResponse(Book book) =>
+            new(
+                book.BookId,
+                book.Title,
+                book.ISBN,
+                book.BookCopies.Count,
+                book.AvailabilityCopies,
+                book.Language,
+                book.Description ?? string.Empty,
+                book.CoverImage ?? string.Empty
+            );
     }
 }

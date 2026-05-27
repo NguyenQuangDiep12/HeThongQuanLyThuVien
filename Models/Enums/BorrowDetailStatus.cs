@@ -1,11 +1,10 @@
 ﻿namespace HeThongQuanLyThuVien.Models.Enums
 {
-    public enum BorrowStatus 
+    public enum BorrowDetailStatus 
     { 
-        Pending, 
         Borrowing, 
         Returned, 
-        Overdue, 
-        Cancelled 
+        Lost, 
+        Damaged 
     }
 }

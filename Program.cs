@@ -46,6 +46,10 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IMailService, MailService>();
+
+
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

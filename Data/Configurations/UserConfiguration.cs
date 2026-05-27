@@ -14,7 +14,8 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(u => u.UserId);
 
             builder.Property(u => u.UserId)
-                .HasColumnName("user_id");
+                .HasColumnName("user_id")
+                .ValueGeneratedOnAdd();
 
             builder.Property(u => u.RoleId)
                 .HasColumnName("role_id")
@@ -29,9 +30,10 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .IsUnique();
 
             builder.Property(u => u.FullName)
-                .HasColumnName("fullname")
+                .HasColumnName("full_name")
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(255)
+                .UseCollation("Vietnamese_CI_AS"); // ho tro sap xep tieng Viet
 
             builder.Property(u => u.PasswordHash)
                 .HasColumnName("password_hash")
@@ -40,49 +42,58 @@ namespace HeThongQuanLyThuVien.Data.Configurations
 
             builder.Property(u => u.Phone)
                 .HasColumnName("phone")
-                .IsRequired()
-                .HasMaxLength(15);
+                .HasMaxLength(20);
 
             builder.Property(u => u.Address)
                 .HasColumnName("address")
-                .HasMaxLength(200);
+                .HasMaxLength(500);
 
-            builder.Property(u => u.LibraryCardCode)
-                .HasColumnName("library_card_code")
+            builder.Property(u => u.AvatarUrl)
+                .HasColumnName("avatar_url")
+                .HasMaxLength(500);
+
+            builder.Property(u => u.Status)
+                .HasColumnName("status")
                 .IsRequired()
-                .HasMaxLength(100);
-
-            builder.HasIndex(u => u.LibraryCardCode)
-                .IsUnique();
-
-            builder.Property(u => u.CardStatus)
-                .HasColumnName("card_status")
-                .IsRequired()
+                .HasMaxLength(40)
                 .HasConversion<string>()
-                .HasDefaultValue(CardStatus.PENDING);
+                .HasDefaultValue(UserStatus.Active);
 
             builder.Property(u => u.CreatedAt)
                 .HasColumnName("created_at")
+                .IsRequired()
                 .HasDefaultValueSql("GETUTCDATE()");
+
             builder.Property(u => u.UpdatedAt)
                 .HasColumnName("updated_at");
 
-            // Relationships
+            // Relationships 
+
+            // User belongs to one Role
             builder.HasOne(u => u.Role)
                 .WithMany(r => r.Users)
                 .HasForeignKey(u => u.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // User has one LibraryCard
+            builder.HasOne(u => u.LibraryCard)
+                .WithOne(lc => lc.User)
+                .HasForeignKey<LibraryCard>(lc => lc.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // User has many BorrowRecords (as reader)
             builder.HasMany(u => u.BorrowRecords)
                 .WithOne(br => br.Reader)
                 .HasForeignKey(br => br.ReaderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // User has many Reservations
             builder.HasMany(u => u.Reservations)
                 .WithOne(r => r.User)
                 .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // User has many Notifications
             builder.HasMany(u => u.Notifications)
                 .WithOne(n => n.User)
                 .HasForeignKey(n => n.UserId)

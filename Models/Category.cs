@@ -4,9 +4,9 @@
     {
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        public string? Description { get; set; }
 
         // Navigation
-        public ICollection<Book> Books { get; set; } = new List<Book>();
+        public ICollection<BookCategory> BookCategories { get; set; } = new List<BookCategory>();
     }
 }

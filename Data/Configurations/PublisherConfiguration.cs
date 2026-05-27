@@ -13,18 +13,20 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(p => p.PublisherId);
 
             builder.Property(p => p.PublisherId)
-                .HasColumnName("publisher_id");
+                .HasColumnName("publisher_id")
+                .ValueGeneratedOnAdd();
 
             builder.Property(p => p.PublisherName)
                 .HasColumnName("publisher_name")
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(255);
 
             builder.Property(p => p.LogoUrl)
                 .HasColumnName("logo_url")
                 .HasMaxLength(500);
 
             // Relationships
+
             builder.HasMany(p => p.Books)
                 .WithOne(b => b.Publisher)
                 .HasForeignKey(b => b.PublisherId)

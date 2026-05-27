@@ -13,23 +13,20 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(c => c.CategoryId);
 
             builder.Property(c => c.CategoryId)
-                .HasColumnName("category_id");
+                .HasColumnName("category_id")
+                .ValueGeneratedOnAdd();
 
             builder.Property(c => c.CategoryName)
                 .HasColumnName("category_name")
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(255);
 
             builder.Property(c => c.Description)
                 .HasColumnName("description")
-                .IsRequired()
-                .HasMaxLength(255);
+                .HasMaxLength(500);
 
-            // Relationships
-            builder.HasMany(c => c.Books)
-                .WithOne(b => b.Category)
-                .HasForeignKey(b => b.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict);
+            //  Relationships
+            // many-to-many Books <-> Categories duoc cau hinh trong BookConfiguration
         }
     }
 }
