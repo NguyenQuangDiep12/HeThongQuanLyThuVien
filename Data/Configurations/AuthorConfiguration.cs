@@ -13,27 +13,24 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(a => a.AuthorId);
 
             builder.Property(a => a.AuthorId)
-                .HasColumnName("author_id");
+                .HasColumnName("author_id")
+                .ValueGeneratedOnAdd();
 
             builder.Property(a => a.AuthorName)
                 .HasColumnName("author_name")
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(255);
 
             builder.Property(a => a.Biography)
                 .HasColumnName("biography")
-                .IsRequired()
-                .HasMaxLength(2000);
+                .HasColumnType("nvarchar(max)");
 
             builder.Property(a => a.AuthorUrl)
                 .HasColumnName("author_url")
                 .HasMaxLength(500);
 
-            // Relationships
-            builder.HasMany(a => a.Books)
-                .WithOne(b => b.Author)
-                .HasForeignKey(b => b.AuthorId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Relationships 
+            // many-to-many Books <-> Authors duoc cau hinh trong BookConfiguration
         }
     }
 }

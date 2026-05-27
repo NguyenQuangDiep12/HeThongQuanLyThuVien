@@ -1,11 +1,9 @@
 ﻿namespace HeThongQuanLyThuVien.Models.Enums
 {
-    public enum BorrowStatus 
+    public enum PaymentStatus 
     { 
         Pending, 
-        Borrowing, 
-        Returned, 
-        Overdue, 
+        Paid, 
         Cancelled 
     }
 }

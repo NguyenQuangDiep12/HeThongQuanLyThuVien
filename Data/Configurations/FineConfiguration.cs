@@ -14,10 +14,12 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(f => f.FineId);
 
             builder.Property(f => f.FineId)
-                .HasColumnName("fine_id");
+                .HasColumnName("fine_id")
+                .ValueGeneratedOnAdd();
 
-            builder.Property(f => f.BorrowingDetailId)
-                .HasColumnName("borrowing_detail_id")
+            // Tham chieu den chi tiet muon bi vi pham
+            builder.Property(f => f.BorrowDetailId)
+                .HasColumnName("borrow_detail_id")
                 .IsRequired();
 
             builder.Property(f => f.Amount)
@@ -28,22 +30,35 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.Property(f => f.Reason)
                 .HasColumnName("reason")
                 .IsRequired()
-                .HasMaxLength(255);
+                .HasMaxLength(500);
 
-            builder.Property(f => f.PaymentMethod)
-                .HasColumnName("payment_method")
+            builder.Property(f => f.FineType)
+                .HasColumnName("fine_type")
                 .IsRequired()
+                .HasMaxLength(30)
+                .HasConversion<string>();
+
+            builder.Property(f => f.PaymentStatus)
+                .HasColumnName("payment_status")
+                .IsRequired()
+                .HasMaxLength(30)
                 .HasConversion<string>()
-                .HasDefaultValue(PaymentMethod.CASH);
+                .HasDefaultValue(PaymentStatus.Pending);
 
             builder.Property(f => f.PaidAt)
-                .HasColumnName("paid_at")
-                .IsRequired();
+                .HasColumnName("paid_at");
+
+            builder.Property(f => f.CreatedAt)
+                .HasColumnName("created_at")
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
 
             // Relationships
+
+            // Fine thuoc ve BorrowDetail (Cascade: xoa chi tiet muon thi xoa phieu phat)
             builder.HasOne(f => f.BorrowDetail)
                 .WithMany(bd => bd.Fines)
-                .HasForeignKey(f => f.BorrowingDetailId)
+                .HasForeignKey(f => f.BorrowDetailId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

@@ -13,18 +13,11 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(b => b.BookId);
 
             builder.Property(b => b.BookId)
-                .HasColumnName("book_id");
-
-            builder.Property(b => b.CategoryId)
-                .HasColumnName("category_id")
-                .IsRequired();
+                .HasColumnName("book_id")
+                .ValueGeneratedOnAdd();
 
             builder.Property(b => b.PublisherId)
                 .HasColumnName("publisher_id")
-                .IsRequired();
-
-            builder.Property(b => b.AuthorId)
-                .HasColumnName("author_id")
                 .IsRequired();
 
             builder.Property(b => b.Title)
@@ -35,64 +28,63 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.Property(b => b.ISBN)
                 .HasColumnName("isbn")
                 .IsRequired()
-                .HasMaxLength(13);
+                .HasMaxLength(50);
 
             builder.HasIndex(b => b.ISBN)
                 .IsUnique();
 
-            builder.Property(b => b.Quantity)
-                .HasColumnName("quantity")
-                .IsRequired();
-
-            builder.Property(b => b.AvailableQuantity)
-                .HasColumnName("available_quantity")
-                .IsRequired();
-
             builder.Property(b => b.Language)
                 .HasColumnName("language")
-                .IsRequired()
                 .HasMaxLength(50);
 
             builder.Property(b => b.Description)
                 .HasColumnName("description")
-                .IsRequired()
-                .HasMaxLength(1000);
+                .HasColumnType("nvarchar(max)");
 
             builder.Property(b => b.CoverImage)
                 .HasColumnName("cover_image")
                 .HasMaxLength(500);
 
+            builder.Property(b => b.AvailabilityCopies)
+                .HasColumnName("availability_copies")
+                .IsRequired()
+                .HasDefaultValue(0);
+
             builder.Property(b => b.CreatedAt)
                 .HasColumnName("created_at")
-                .IsRequired();
+                .IsRequired()
+                .HasDefaultValueSql("GETUTCDATE()");
 
             builder.Property(b => b.UpdatedAt)
                 .HasColumnName("updated_at");
 
             // Relationships
-            builder.HasOne(b => b.Category)
-                .WithMany(c => c.Books)
-                .HasForeignKey(b => b.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(b => b.Publisher)
                 .WithMany(p => p.Books)
                 .HasForeignKey(b => b.PublisherId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(b => b.Author)
-                .WithMany(a => a.Books)
-                .HasForeignKey(b => b.AuthorId)
+            // Book -> BookAuthor (explicit junction)
+            builder.HasMany(b => b.BookAuthors)
+                .WithOne(ba => ba.Book)
+                .HasForeignKey(ba => ba.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Book -> BookCategory (explicit junction)
+            builder.HasMany(b => b.BookCategories)
+                .WithOne(bc => bc.Book)
+                .HasForeignKey(bc => bc.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(b => b.BookCopies)
+                .WithOne(bc => bc.Book)
+                .HasForeignKey(bc => bc.BookId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(b => b.Reservations)
                 .WithOne(r => r.Book)
                 .HasForeignKey(r => r.BookId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasMany(b => b.BorrowDetails)
-                .WithOne(bd => bd.Book)
-                .HasForeignKey(bd => bd.BookId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

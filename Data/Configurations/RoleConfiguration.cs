@@ -14,23 +14,21 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.HasKey(r => r.RoleId);
 
             builder.Property(r => r.RoleId)
-                .HasColumnName("role_id");
+                .HasColumnName("role_id")
+                .ValueGeneratedOnAdd();
 
             builder.Property(r => r.RoleName)
                 .HasColumnName("role_name")
                 .IsRequired()
+                .HasMaxLength(50)
                 .HasConversion<string>();
+
+            builder.HasIndex(r => r.RoleName)
+                .IsUnique();
 
             builder.Property(r => r.Description)
                 .HasColumnName("description")
-                .IsRequired()
                 .HasMaxLength(255);
-
-            // Relationships
-            builder.HasMany(r => r.Users)
-                .WithOne(u => u.Role)
-                .HasForeignKey(u => u.RoleId)
-                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

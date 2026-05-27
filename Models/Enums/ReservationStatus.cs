@@ -2,8 +2,10 @@
 {
     public enum ReservationStatus
     {
-        WAITING,
-        COMPLETED,
-        CANCELLED
+        Waiting,
+        Ready,
+        Completed,
+        Cancelled,
+        Expired
     }
 }

@@ -8,12 +8,17 @@ namespace HeThongQuanLyThuVien.Models
         public int ReaderId { get; set; }
         public int? ApprovedBy { get; set; }
         public string BorrowCode { get; set; } = string.Empty;
+        public DateTime? BorrowDate { get; set; }
         public DateTime DueDate { get; set; }
-        public BorrowStatus Status { get; set; } = BorrowStatus.PENDING;
+        public DateTime? ReturnedDate { get; set; }
+        public int ExtensionCount { get; set; }
+        public BorrowType BorrowType { get; set; } = BorrowType.TakeHome;
+        public BorrowStatus Status { get; set; } = BorrowStatus.Pending;
+        public DateTime? ApprovedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         // Navigation
         public User Reader { get; set; } = null!;
-        public User Approver { get; set; } = null!;
+        public User? Approver { get; set; }
         public ICollection<BorrowDetail> BorrowDetails { get; set; } = new List<BorrowDetail>();
     }
 }
