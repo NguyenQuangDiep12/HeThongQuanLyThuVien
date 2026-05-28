@@ -4,36 +4,42 @@ using Microsoft.AspNetCore.Mvc;
 namespace HeThongQuanLyThuVien.Controllers
 {
     [ApiController]
-    [Route("api/authors")]
-    public class AuthorsController : ControllerBase
+    [Route("api/book-copies")]
+    public class BookCopyController : ControllerBase
     {
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetListAuthors()
+        [Authorize("STAFF,ADMIN")]
+        public async Task<IActionResult> GetBookCopies()
         {
             throw new NotImplementedException();
         }
         [HttpGet("{id}")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetAuthorDetail()
+        [Authorize("STAFF,ADMIN")]
+        public async Task<IActionResult> GetBookCopyDetail()
         {
             throw new NotImplementedException();
         }
-        [HttpPost]
+        [HttpPost("book/{id}")]
         [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> AddAuthors()
+        public async Task<IActionResult> AddBookCopyDetail()
         {
             throw new NotImplementedException();
         }
         [HttpPut("{id}")]
         [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> UpdateAuthors()
+        public async Task<IActionResult> UpdateCopyBookStatus()
+        {
+            throw new NotImplementedException();
+        }
+        [HttpPatch("{id}/status")]
+        [Authorize("STAFF,ADMIN")]
+        public async Task<IActionResult> ChangeCopyBookStatus()
         {
             throw new NotImplementedException();
         }
         [HttpDelete("{id}")]
         [Authorize("ADMIN")]
-        public async Task<IActionResult> DeleteAuthors()
+        public async Task<IActionResult> DeleteBookCopy()
         {
             throw new NotImplementedException();
         }

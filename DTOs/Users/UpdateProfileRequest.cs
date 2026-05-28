@@ -2,13 +2,11 @@
 
 namespace HeThongQuanLyThuVien.DTOs.Users
 {
+    // PUT /users/me/profile
     public record UpdateProfileRequest(
-        int RoleId,
-        string Email,
-        string FullName,
-        string Password,
-        string Phone,
-        string Address,
-        string LibraryCardCode
+        string FullName, 
+        string Phone, 
+        string Address, 
+        string? AvatarUrl
     );
 }

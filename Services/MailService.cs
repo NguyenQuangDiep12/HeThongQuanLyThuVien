@@ -6,12 +6,18 @@ namespace HeThongQuanLyThuVien.Services
 {
     public class MailService : IMailService
     {
+        private readonly IConfiguration _configuration;
+        public MailService(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         // ham nhan 3 tham so to(email nguoi nhan), from (nguoi gui), subject( tieu de), body (noi dung) chay bat dong bo async task
-        public async Task SendEmailAsync(string from, string to, string subject, string body)
+        public async Task SendEmailAsync(string to, string subject, string body)
         {
             var message = new MailMessage(); // MailMessage() dai dien cho mot mail
 
-            message.From = new MailAddress($"{from}"); // gan dia chi nguoi gui
+            message.From = new MailAddress($"{_configuration["Mail:From"]}"); // gan dia chi nguoi gui
             message.To.Add(to); // gan dia chi nguoi nhan
             message.Subject = subject; // gan tieu de email
             message.Body = body; // gan noi dung email
@@ -22,7 +28,9 @@ namespace HeThongQuanLyThuVien.Services
 
 
             // ma xac thuc tinh hop le cho tai khoan gmail: nguyenquangdiepnx1@gmail.com
-            string AppPasswordVerified = "brht gbor pzwr ueui";
+            string AppPasswordVerified = _configuration["Mail:AppPassword"]!;
+
+            smtp.UseDefaultCredentials = false;
 
             smtp.Credentials = new NetworkCredential(
                 "nguyenquangdiepnx1@gmail.com",

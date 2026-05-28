@@ -59,7 +59,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        [Authorize(Roles = "Reader,Staff,Admin")]
+        [Authorize(Roles = "READER,STAFF,ADMIN")]
         [HttpPut("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
         {

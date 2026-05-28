@@ -48,7 +48,7 @@
 |---|---|---|---|
 | GET | /books | Tìm kiếm sách | Public |
 | GET | /books/:id | Chi tiết sách | Public |
-| POST | /books | Thêm sách mới | Staff/Admin |
+| POST | /book | Thêm sách mới | Staff/Admin |
 | PUT | /books/:id | Cập nhật thông tin sách | Staff/Admin |
 | DELETE | /books/:id | Xóa đầu sách | Admin |
 </details>
@@ -61,7 +61,7 @@
 |---|---|---|---|
 | GET | /book-copies | Danh sách bản sao sách | Staff/Admin |
 | GET | /book-copies/:id | Chi tiết cuốn sách vật lý | Staff/Admin |
-| POST | /books/:id/copies | Thêm bản sao sách | Staff/Admin |
+| POST | /book-copies/book/:id | Thêm bản sao sách | Staff/Admin |
 | PUT | /book-copies/:id | Cập nhật tình trạng bản sao | Staff/Admin |
 | PATCH | /book-copies/:id/status | Thay đổi trạng thái bản sao | Staff/Admin |
 | DELETE | /book-copies/:id | Xóa bản sao sách | Admin |

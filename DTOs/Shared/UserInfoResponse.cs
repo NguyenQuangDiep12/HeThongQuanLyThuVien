@@ -1,5 +1,6 @@
 ﻿namespace HeThongQuanLyThuVien.DTOs.Shared
 {
+    // Post /auth/login
     public class UserInfoResponse
     {
         public int UserId { get; set; }
