@@ -128,7 +128,6 @@ namespace HeThongQuanLyThuVien.Services
 
             // gui password moi toi nguoi dung
             await _mailService.SendEmailAsync(
-                "nguyenquangdiepnx1@gmail.com",
                 request.Email,
                 "Reset Password",
                 $"Mat khau moi cua ban la: {newPassword}");
