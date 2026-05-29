@@ -2,10 +2,10 @@
 {
     public enum BookCopyStatus 
     { 
-        Available, 
-        Borrowed, 
-        Reserved, 
-        Lost, 
-        Damaged 
+        Available,
+        Borrowed,
+        Reserved,
+        Lost,
+        Damaged
     }
 }

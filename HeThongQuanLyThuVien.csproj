@@ -22,10 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\BorrowRecords\" />
-    <Folder Include="DTOs\Fines\" />
-    <Folder Include="DTOs\Notifications\" />
-    <Folder Include="DTOs\Reservations\" />
     <Folder Include="Resource\" />
   </ItemGroup>
 

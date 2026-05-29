@@ -17,13 +17,12 @@ namespace HeThongQuanLyThuVien.Services
             _context = context;
         }
 
-        public async Task<BookResponse> CreateBook(CreateBookRequest request, CancellationToken ct = default)
+        public async Task<BookResponse> CreateBookAsync(CreateBookRequest request, CancellationToken ct = default)
         {
             bool isCreated = await _context.Books.AnyAsync(b => b.ISBN == request.ISBN, ct);
             if (isCreated)
                 throw new ConflictException("Sach voi ISBN nay da ton tai!");
 
-            // Validate author va category ton tai
             bool authorExists = await _context.Authors.AnyAsync(a => a.AuthorId == request.AuthorId, ct);
             bool categoryExists = await _context.Categories.AnyAsync(c => c.CategoryId == request.CategoryId, ct);
 
@@ -38,11 +37,10 @@ namespace HeThongQuanLyThuVien.Services
                 Language = request.Language,
                 Description = request.Description,
                 CoverImage = request.CoverImage,
-                AvailabilityCopies = 0, // ban sao se duoc them rieng qua BookCopy
+                AvailabilityCopies = 0,
                 CreatedAt = DateTime.UtcNow,
             };
 
-            // Gan junction records thay vi set AuthorId/CategoryId truc tiep
             book.BookAuthors = new List<BookAuthor> { new() { AuthorId = request.AuthorId } };
             book.BookCategories = new List<BookCategory> { new() { CategoryId = request.CategoryId } };
 
@@ -52,7 +50,7 @@ namespace HeThongQuanLyThuVien.Services
             return MapToBookResponse(book);
         }
 
-        public async Task<bool> UpdateBook(int bookId, UpdateBookRequest request, CancellationToken ct = default)
+        public async Task UpdateBookAsync(int bookId, UpdateBookRequest request, CancellationToken ct = default)
         {
             var book = await _context.Books
                 .Include(b => b.BookAuthors)
@@ -66,19 +64,16 @@ namespace HeThongQuanLyThuVien.Services
             book.ISBN = request.ISBN;
             book.UpdatedAt = DateTime.UtcNow;
 
-            // Cap nhat Author: xoa cu, them moi
             book.BookAuthors.Clear();
             book.BookAuthors.Add(new BookAuthor { BookId = bookId, AuthorId = request.AuthorId });
 
-            // Cap nhat Category: xoa cu, them moi
             book.BookCategories.Clear();
             book.BookCategories.Add(new BookCategory { BookId = bookId, CategoryId = request.CategoryId });
 
             await _context.SaveChangesAsync(ct);
-            return true;
         }
 
-        public async Task DeleteBook(int bookId, CancellationToken ct = default)
+        public async Task DeleteBookAsync(int bookId, CancellationToken ct = default)
         {
             int deletedRows = await _context.Books
                 .Where(b => b.BookId == bookId)
@@ -88,7 +83,7 @@ namespace HeThongQuanLyThuVien.Services
                 throw new NotFoundException("Sach khong ton tai!");
         }
 
-        public async Task<PaginationResponse<BookResponse>> GetRangeBooks(BookQueryRequest request, CancellationToken ct = default)
+        public async Task<PaginationResponse<BookResponse>> GetRangeBooksAsync(BookQueryRequest request, CancellationToken ct = default)
         {
             int page = request.Page < 1 ? 1 : request.Page;
             var query = _context.Books.AsNoTracking();
@@ -132,7 +127,7 @@ namespace HeThongQuanLyThuVien.Services
             };
         }
 
-        public async Task<BookDetailResponse> GetBookById(int bookId, CancellationToken ct = default)
+        public async Task<BookDetailResponse> GetBookByIdAsync(int bookId, CancellationToken ct = default)
         {
             var book = await _context.Books
                 .AsNoTracking()

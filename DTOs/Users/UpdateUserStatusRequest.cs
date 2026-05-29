@@ -4,6 +4,7 @@ namespace HeThongQuanLyThuVien.DTOs.Users
 {
     // PATCH /users/:id/card-status
     public record UpdateUserStatusRequest(
-            UserStatus Status
+            UserStatus Status,
+            DateTime? UpdatedAt
         );
 }
