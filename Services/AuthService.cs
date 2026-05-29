@@ -64,7 +64,7 @@ namespace HeThongQuanLyThuVien.Services
                 LibraryCardCode = GenerateLibraryCardCode(),
                 Status = CardStatus.Active,
                 IssuedAt = DateTime.UtcNow,
-                ExpiredAt = DateTime.UtcNow.AddYears(3),
+                ExpiredAt = DateTime.UtcNow.AddYears(3), // the thu vien co thoi han 3 nam tinh tu luc tao
             };
 
             await _context.LibraryCards.AddAsync(libraryCard, ct);

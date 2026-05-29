@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using HeThongQuanLyThuVien.Data;
+﻿using HeThongQuanLyThuVien.Data;
 using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.DTOs.Users;
 using HeThongQuanLyThuVien.Exceptions;
@@ -7,16 +6,20 @@ using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Services
 {
     public class UserService : IUserService
     {
         private readonly ApplicationDbContext _context;
-        public UserService(ApplicationDbContext context)
+        private readonly IHttpContextAccessor _contextAccessor;
+        public UserService(ApplicationDbContext context, IHttpContextAccessor contextAccessor)
         {
             _context = context;
+            _contextAccessor = contextAccessor;
         }
+
         // POST /staff - admin them nhan vien
         public async Task CreateStaffAsync(CreateStaffRequest request, CancellationToken ct = default)
         {
@@ -54,7 +57,7 @@ namespace HeThongQuanLyThuVien.Services
             await _context.Users.AddAsync(staff);
             await _context.SaveChangesAsync(ct);
         }
-        // GET /users - Staff/Admin xem danh sach nguoi dung 
+        // GET /users - Admin xem danh sach staff
         public async Task<PaginationResponse<UserListInfoResponse>> GetStaffsAsync(
             GetUserRequest request, CancellationToken ct = default)
         {
@@ -63,17 +66,28 @@ namespace HeThongQuanLyThuVien.Services
                 .Include(u => u.Role)
                 .Where(u => u.Role.RoleName == RoleName.STAFF);
 
-            if(!string.IsNullOrWhiteSpace(request.FullName) || request.Status != null || !string.IsNullOrWhiteSpace(request.Email) || request.Role != null)
+            if (!string.IsNullOrWhiteSpace(request.FullName))
             {
-                var FullNameKeyword = request.FullName?.Trim();
-                var EmailKeyword = request.Email?.Trim();
-
                 query = query.Where(u =>
-                    u.FullName == FullNameKeyword ||
-                    u.Email == EmailKeyword ||
-                    u.Status == request.Status ||
-                    u.RoleId == request.Role
-                );
+                    u.FullName.Contains(request.FullName));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                query = query.Where(u =>
+                    u.Email.Contains(request.Email));
+            }
+
+            if (request.Status != null)
+            {
+                query = query.Where(u =>
+                    u.Status == request.Status);
+            }
+
+            if (request.RoleName != null)
+            {
+                query = query.Where(u =>
+                    u.Role.RoleName.ToString() == request.RoleName);
             }
 
             int total = await query.CountAsync();
@@ -90,7 +104,7 @@ namespace HeThongQuanLyThuVien.Services
                     Phone = u.Phone,
                     Role = u.Role.RoleName.ToString(),
                     Status = u.Status.ToString(),
-                    CardStatus = u.LibraryCard.Status.ToString(),
+                    CardStatus = u.LibraryCard != null ? u.LibraryCard.Status.ToString() : string.Empty
                 }).ToListAsync(ct);
 
             return new PaginationResponse<UserListInfoResponse>
@@ -104,10 +118,30 @@ namespace HeThongQuanLyThuVien.Services
         // GET /users/:id - xem chi tiet nguoi dung
         public async Task<UserProfileResponse> GetUserByIdAsync(int userId, CancellationToken ct = default)
         {
+            // 1. Lay thong tin nguoi dang nhap tu JWT
+            string? currentUserIdClaim = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string? role = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrEmpty(currentUserIdClaim) || string.IsNullOrEmpty(role))
+                throw new UnauthorizedException("Nguoi dung chua dang nhap!");
+
+            int currentUserId = int.Parse(currentUserIdClaim);
+            bool isAdmin = role == "ADMIN";
+            bool isStaff = role == "STAFF";
+            bool isOwner = currentUserId == userId;
+
+            // Kiem tra quyen xem co ban (Chan truy van neu Reader di xem nguoi khac)
+            // READER: chi duoc xem chinh minh
+
+            // TH1: Reader xem chinh minh => IsAdmin = !false => true, IsStaff = !false => true, IsOwner = !true => false , => false
+            
+            // TH2: Reader xem thong tin nguoi khac IsAdmin = !false => true, IsStaff = !false => true, IsOwner = !false => true , => true
+            if (!isAdmin && !isStaff && !isOwner)
+                throw new ForbiddenException("Ban khong co quyen xem thong tin nguoi dung nay!");
+
+            // 2. TRUY VẤN 1 LẦN DUY NHẤT: Lay thong tin user can xem
             var user = await _context.Users
                 .AsNoTracking()
-                .Include(u => u.Role)
-                .Include(u => u.LibraryCard)
                 .Where(u => u.UserId == userId)
                 .Select(u => new UserProfileResponse
                 {
@@ -117,41 +151,56 @@ namespace HeThongQuanLyThuVien.Services
                     Phone = u.Phone,
                     Address = u.Address,
                     AvatarUrl = u.AvatarUrl,
-                    Role = u.Role.RoleName.ToString(),
+                    Role = u.Role.RoleName.ToString(), // Dung de check quyen ben duoi
                     Status = u.Status.ToString(),
-                    CardStatus = u.LibraryCard.Status.ToString(),
-                    LibraryCardCode = u.LibraryCard != null ? u.LibraryCard.LibraryCardCode : GenerateLibraryCardCodeAsync(_context).ToString()!,
-                    CreatedAt = DateTime.UtcNow,
-                }).FirstOrDefaultAsync(ct);
+                    CardStatus = u.LibraryCard != null ? u.LibraryCard.Status.ToString() : string.Empty,
+                    LibraryCardCode = u.LibraryCard != null ? u.LibraryCard.LibraryCardCode : null,
+                    CreatedAt = u.CreatedAt
+                })
+                .FirstOrDefaultAsync(ct);
 
-            if(user == null)
-            {
+            if (user == null)
                 throw new NotFoundException("Nguoi dung khong ton tai!");
+
+            // 3. Kiem tra quyen xem chi tiet (Phan cap)
+            // STAFF chi duoc xem chinh minh (isOwner) hoac xem READER. 
+            // Khong duoc xem ADMIN va các STAFF khac.
+            if (isStaff && !isOwner && user.Role != "READER")
+            {
+                throw new ForbiddenException("Ban khong co quyen xem thong tin cua nhan vien hoac quan tri vien khac!");
             }
+            /*
+             * TH1: Staff xem chinh minh => isStaff = true, IsOwner = !true => false, user.Role != "Reader" => true, => false
+             * TH2: Staff xem nguoi dung Reader => isStaff = true, IsOwner = !false => true, user.Role != "Reader" => false, => false
+             * TH3: Staff xem admin => isStaff = true, IsOwner = !false = true, user.Role != "Reader" => true => true 
+             * TH4: Staff xem another staff => isStaff = true, IsOwner = !false = true, user.Role != "Reader" => true => true
+             */
             return user;
         }
-        // 
+        // GET /users - STAFF/ADMIN Xem danh sach nguoi dung
         public async Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, CancellationToken ct = default)
         {
             var query = _context.Users
-             .AsNoTracking()
-             .Include(u => u.Role)
-             .Where(u => u.Role.RoleName == RoleName.READER);
+                .AsNoTracking()
+                .Where(u => u.Role.RoleName == RoleName.READER); // Giữ bộ lọc cứng ban đầu
 
-            if (!string.IsNullOrWhiteSpace(request.FullName) || request.Status != null || !string.IsNullOrWhiteSpace(request.Email) || request.Role != null)
+            // Tách riêng từng điều kiện động
+            if (!string.IsNullOrWhiteSpace(request.FullName))
             {
-                var FullNameKeyword = request.FullName?.Trim();
-                var EmailKeyword = request.Email?.Trim();
-
-                query = query.Where(u =>
-                    u.FullName == FullNameKeyword ||
-                    u.Email == EmailKeyword ||
-                    u.Status == request.Status ||
-                    u.RoleId == request.Role
-                );
+                query = query.Where(u => u.FullName.Contains(request.FullName.Trim()));
             }
 
-            int total = await query.CountAsync();
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                query = query.Where(u => u.Email.Contains(request.Email.Trim()));
+            }
+
+            if (request.Status != null)
+            {
+                query = query.Where(u => u.Status == request.Status);
+            }
+
+            int total = await query.CountAsync(ct);
 
             var items = await query
                 .OrderBy(u => u.UserId)
@@ -165,31 +214,32 @@ namespace HeThongQuanLyThuVien.Services
                     Phone = u.Phone,
                     Role = u.Role.RoleName.ToString(),
                     Status = u.Status.ToString(),
-                    CardStatus = u.LibraryCard.Status.ToString(),
+                    // Thêm check null an toàn tránh crash lỗi 500
+                    CardStatus = u.LibraryCard != null ? u.LibraryCard.Status.ToString() : string.Empty,
                 }).ToListAsync(ct);
 
-            return new PaginationResponse<UserListInfoResponse>
-            {
-                Items = items,
-                Page = request.Page,
-                PageSize = request.PageSize,
-                TotalRecords = total
-            };
+            return new PaginationResponse<UserListInfoResponse> 
+                {
+                    Items = items, 
+                    Page = request.Page, 
+                    PageSize = request.PageSize, 
+                    TotalRecords = total 
+                };
         }
         // PATCH /user/:id/card-status - Admin mo/ khoa the thu vien
         public async Task UpdateLibraryCardStatusAsync(int userId, UpdateLibraryCardStatusRequest request, CancellationToken ct = default)
         {
-            // kiem tra the thu vien nguoi dung ton tai hay khong?
-            var card = await _context.LibraryCards
-                .FirstOrDefaultAsync(l => l.UserId == userId);
+            // Check queyn Admin
+            string? currentRole = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (currentRole != "ADMIN")
+                throw new ForbiddenException("Chi co Admin moi co quyen thao tac tren the thu vien!");
+
+            var card = await _context.LibraryCards.FirstOrDefaultAsync(l => l.UserId == userId, ct);
             if (card == null)
-            {
                 throw new NotFoundException("The thu vien khong ton tai!");
-            }
 
             card.Status = request.Status;
             await _context.SaveChangesAsync(ct);
-
         }
         // PUT /users/me/profile - reader tu cap nhat ho so ca nhan
         public async Task UpdateMyProfileAsync(int currentUserId, UpdateProfileRequest request, CancellationToken ct = default)
@@ -231,52 +281,61 @@ namespace HeThongQuanLyThuVien.Services
 
             await _context.SaveChangesAsync(ct);
         }
-        // PUT /users/:id - STAFF, ADMIN cap nhat thong tin nguoi dung
+        /// PUT /users/:id - STAFF, ADMIN cap nhat thong tin nguoi dung
         public async Task UpdateUserAsync(int userId, UpdateUserRequest request, CancellationToken ct = default)
         {
-            var user = await _context.Users.FindAsync(new object[] { userId });
+            // lay thong tin nguoi thuc hien thao tac
+            string? currentRole = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value; // lay role trong JWT claims
 
-            if(user == null)
-            {
-                throw new NotFoundException("Nguoi dung khong ton tai !");
-            }
+            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            if (user == null)
+                throw new NotFoundException("Nguoi dung khong ton tai!");
+
+            // STAFF or ADMIN khong duoc tu y sua thong tin cua ADMIN/STAFF khac qua endpoint nay
+            if (user.Role.RoleName != RoleName.READER)
+                throw new ForbiddenException("khong the chinh sua thong tin cua nhan vien or Admin tai day!");
 
             user.FullName = request.FullName;
             user.Phone = request.Phone;
             user.Address = request.Address;
-            user.RoleId = request.RoleId;
             user.UpdatedAt = DateTime.UtcNow;
+
+            // chi ADMIN moi co quyen thay doi RoleId cua nguoi !=
+            if (currentRole == "ADMIN")
+            {
+                bool roleExists = await _context.Roles.AnyAsync(r => r.RoleId == request.RoleId, ct);
+                if (!roleExists)
+                {
+                    throw new NotFoundException("Vai tro khong ton tai!");
+                }
+                user.RoleId = request.RoleId;
+            }
 
             await _context.SaveChangesAsync(ct);
         }
         // PATCH /users/:id/status - admin mo/ khoa tai khoan 
         public async Task UpdateUserStatusAsync(int userId, UpdateUserStatusRequest request, CancellationToken ct = default)
         {
+            // Them check quyen Admin
+            string? currentRole = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (currentRole != "ADMIN")
+                throw new ForbiddenException("Chi Admin moi co quyen khoa/mo tai khoan!");
+
+            // Ngan chan viec Admin tu khoa chinh minh (Logic Safety)
+            string? currentUserId = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (currentUserId != null && int.Parse(currentUserId) == userId)
+                throw new BadRequestException("Ban khong the tu khoa tai khoan cua chinh minh!");
+
             int affectedRows = await _context.Users
-                .ExecuteUpdateAsync(setters => 
-                    setters
+                .Where(u => u.UserId == userId)
+                .ExecuteUpdateAsync(setters => setters
                     .SetProperty(u => u.Status, request.Status)
-                    .SetProperty(u => u.UpdatedAt, request.UpdatedAt)
-                    ,ct);
+                    .SetProperty(u => u.UpdatedAt, DateTime.UtcNow)
+                , ct);
 
-            if(affectedRows == 0)
-            {
+            if (affectedRows == 0)
                 throw new NotFoundException("Nguoi dung khong ton tai!");
-            }
-        }
-
-        // private function
-        private static async Task<string> GenerateLibraryCardCodeAsync(ApplicationDbContext _context)
-        {
-            string cardcode;
-
-            do
-            {
-                // dat theo mau LIB - Year/Month/Day - Random 4 so
-                cardcode = $"LIB{DateTime.UtcNow:yyyy:MM:dd}{Random.Shared.Next(1000, 9999)}";
-            } while (await _context.LibraryCards.AnyAsync(l => l.LibraryCardCode == cardcode)); // kiem tra xem da co ma the thu vien nao generate trung chua neu co thi generate lai
-
-            return cardcode;
         }
     }
 }

@@ -27,7 +27,7 @@ namespace HeThongQuanLyThuVien.Middlewares
                     BadRequestException => (int)HttpStatusCode.BadRequest, // 400 Request not valid
                     ForbiddenException => (int)HttpStatusCode.Forbidden, // 403 resource forbid access 
                     ConflictException => (int)HttpStatusCode.Conflict, // 409 Resource conflict
-                    ValidationException => (int)HttpStatusCode.UnprocessableEntity, // 422
+                    ValidationException => (int)HttpStatusCode.UnprocessableEntity, // 422 UnprocessableEntity
                     UnauthorizedException => (int)HttpStatusCode.Unauthorized, // 401 Request not authorized
                     _=> (int)HttpStatusCode.InternalServerError, // 500 Error Server
                 };
