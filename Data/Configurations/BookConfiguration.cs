@@ -45,11 +45,6 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .HasColumnName("cover_image")
                 .HasMaxLength(500);
 
-            builder.Property(b => b.AvailabilityCopies)
-                .HasColumnName("availability_copies")
-                .IsRequired()
-                .HasDefaultValue(0);
-
             builder.Property(b => b.CreatedAt)
                 .HasColumnName("created_at")
                 .IsRequired()

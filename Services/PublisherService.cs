@@ -4,29 +4,21 @@ using HeThongQuanLyThuVien.Exceptions;
 using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Services
 {
     public class PublisherService : IPublisherService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public PublisherService(ApplicationDbContext context)
+        public PublisherService(
+            ApplicationDbContext context,
+            IHttpContextAccessor contextAccessor)
         {
             _context = context;
-        }
-
-        public async Task<List<PublisherResponse>> GetPublishersAsync(CancellationToken ct = default)
-        {
-            return await _context.Publisher
-                .AsNoTracking()
-                .Select(p => new PublisherResponse
-                {
-                    PublisherId = p.PublisherId,
-                    PublisherName = p.PublisherName,
-                    LogoUrl = p.LogoUrl
-                })
-                .ToListAsync(ct);
+            _contextAccessor = contextAccessor;
         }
 
         public async Task<PublisherResponse> GetPublisherByIdAsync(int id, CancellationToken ct = default)
@@ -39,30 +31,11 @@ namespace HeThongQuanLyThuVien.Services
                 throw new NotFoundException("Nha xuat ban khong ton tai!");
 
             return new PublisherResponse
-            {
-                PublisherId = publisher.PublisherId,
-                PublisherName = publisher.PublisherName,
-                LogoUrl = publisher.LogoUrl
-            };
-        }
-
-        public async Task<PublisherResponse> CreatePublisherAsync(CreatePublisherRequest request, CancellationToken ct = default)
-        {
-            var publisher = new Publisher
-            {
-                PublisherName = request.PublisherName,
-                LogoUrl = request.LogoUrl
-            };
-
-            await _context.Publisher.AddAsync(publisher, ct);
-            await _context.SaveChangesAsync(ct);
-
-            return new PublisherResponse
-            {
-                PublisherId = publisher.PublisherId,
-                PublisherName = publisher.PublisherName,
-                LogoUrl = publisher.LogoUrl
-            };
+            (
+                publisher.PublisherId,
+                publisher.PublisherName,
+                publisher.LogoUrl
+            );
         }
 
         public async Task UpdatePublisherAsync(int id, UpdatePublisherRequest request, CancellationToken ct = default)
@@ -79,6 +52,12 @@ namespace HeThongQuanLyThuVien.Services
 
         public async Task DeletePublisherAsync(int id, CancellationToken ct = default)
         {
+            var roleUser = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (roleUser != "ADMIN")
+            {
+                throw new UnauthorizedException("Nguoi dung khong co quyen thuc hien chuc nang nay!");
+            }
+
             // Kiem tra con sach lien ket khong
             bool hasBooks = await _context.Books.AnyAsync(b => b.PublisherId == id, ct);
             if (hasBooks)
@@ -90,6 +69,38 @@ namespace HeThongQuanLyThuVien.Services
 
             if (rows == 0)
                 throw new NotFoundException("Nha xuat ban khong ton tai!");
+        }
+
+        public async Task<List<PublisherResponse>> GetListPublishersAsync(CancellationToken ct = default)
+        {
+            return await _context.Publisher
+               .AsNoTracking()
+               .Select(p => new PublisherResponse
+               (
+                   p.PublisherId,
+                   p.PublisherName,
+                   p.LogoUrl
+               ))
+               .ToListAsync(ct);
+        }
+
+        public async Task<PublisherResponse> AddPublisherAsync(CreatePublisherRequest request, CancellationToken ct = default)
+        {
+            var publisher = new Publisher
+            {
+                PublisherName = request.PublisherName,
+                LogoUrl = request.LogoUrl
+            };
+
+            await _context.Publisher.AddAsync(publisher, ct);
+            await _context.SaveChangesAsync(ct);
+
+            return new PublisherResponse
+            (
+                publisher.PublisherId,
+                publisher.PublisherName,
+                publisher.LogoUrl
+            );
         }
     }
 }

@@ -39,7 +39,7 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(30)
                 .HasConversion<string>()
-                .HasDefaultValue(BorrowDetailStatus.Borrowing);
+                .HasDefaultValue(BorrowDetailStatus.BORROWING);
 
             // Relationships
 

@@ -11,17 +11,15 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
     public interface IReservationService
     {
         // GET /reservations
-        Task<PaginationResponse<ReservationResponse>> GetListReservationsAsync(
-            int page, int pageSize, CancellationToken ct = default);
+        Task<PaginationResponse<ReservationResponse>> GetReservationsAsync(PaginationRequest request, CancellationToken ct = default);
 
         // POST /reservations — Staff tạo phiếu đặt trước cho bạn đọc
-        Task<ReservationResponse> CreateReservationAsync(
-            CreateReservationRequest request, CancellationToken ct = default);
+        Task<ReservationResponse> CreateReservationAsync(CreateReservationRequest request, CancellationToken ct = default);
 
-        // PATCH /reservations/:id/cancel
+        // PATCH /reservations/:id/cancel - READER,STAFF,ADMIN co the huy dat truoc sach
         Task CancelReservationAsync(int reservationId, CancellationToken ct = default);
 
         // PATCH /reservations/:id/complete — chuyển thành phiếu mượn khi sách khả dụng
-        Task CompleteReservationAsync(int reservationId, CancellationToken ct = default);
+        Task<int> CompleteReservationAsync(int reservationId, int staffId, CancellationToken ct = default);
     }
 }

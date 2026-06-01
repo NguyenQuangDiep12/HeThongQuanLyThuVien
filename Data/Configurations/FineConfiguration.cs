@@ -43,7 +43,7 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(30)
                 .HasConversion<string>()
-                .HasDefaultValue(PaymentStatus.Pending);
+                .HasDefaultValue(PaymentStatus.PENDING);
 
             builder.Property(f => f.PaidAt)
                 .HasColumnName("paid_at");

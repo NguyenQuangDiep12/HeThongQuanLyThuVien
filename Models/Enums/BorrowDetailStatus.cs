@@ -2,9 +2,9 @@
 {
     public enum BorrowDetailStatus 
     { 
-        Borrowing, 
-        Returned, 
-        Lost, 
-        Damaged 
+        BORROWING, 
+        RETURNED, 
+        LOST, 
+        DAMAGED 
     }
 }

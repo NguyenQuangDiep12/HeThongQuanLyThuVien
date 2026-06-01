@@ -27,7 +27,7 @@ namespace HeThongQuanLyThuVien.Services
             var now = DateTime.UtcNow;
             var totalOverdue = await _context.BorrowRecords
                 .Where(br =>
-                    br.Status == BorrowStatus.Borrowing &&
+                    br.Status == BorrowStatus.BORROWING &&
                     br.DueDate < now)
                 .CountAsync(ct);
 
@@ -49,7 +49,7 @@ namespace HeThongQuanLyThuVien.Services
                 .AsNoTracking()
                 .Include(br => br.Reader)
                 .Where(br =>
-                    br.Status == BorrowStatus.Borrowing &&
+                    br.Status == BorrowStatus.BORROWING &&
                     br.DueDate < now)
                 .Select(br => new OverdueBorrowResponse
                 {

@@ -17,264 +17,358 @@ namespace HeThongQuanLyThuVien.Services
         private const int ExtensionDays = 3;
         private const int MaxExtensions = 2;
 
+
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
-
+        private readonly IHttpContextAccessor _contextAccessor;
         public BorrowRecordService(
             ApplicationDbContext context,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IHttpContextAccessor contextAccessor)
         {
             _context = context;
             _notificationService = notificationService;
+            _contextAccessor = contextAccessor;
         }
 
-        // GET /borrow-records — Staff/Admin (UC09)
+        // GET /borrow-records — Staff/Admin
         public async Task<PaginationResponse<BorrowRecordSummaryResponse>> GetBorrowRecordsAsync(
             BorrowRecordQueryRequest request, CancellationToken ct = default)
         {
-            int page = request.Page < 1 ? 1 : request.Page;
+            IQueryable<BorrowRecord> Query = _context.BorrowRecords.AsNoTracking();
 
-            var query = _context.BorrowRecords
-                .AsNoTracking()
-                .Include(br => br.Reader);
+            // Filter theo ma phieu
+            if (!string.IsNullOrWhiteSpace(request.BorrowCode))
+            {
+                Query = Query.Where(br =>
+                    br.BorrowCode.Contains(request.BorrowCode));    
+            }
 
-            // Filter theo trang thai neu co
-            IQueryable<BorrowRecord> filtered = query;
+            // Filter theo ten nguoi doc
+            if (!string.IsNullOrWhiteSpace(request.ReaderName))
+            {
+                Query = Query.Where(br =>
+                    br.Reader.FullName.Contains(request.ReaderName));
+            }
+            // Filter theo trang thai
             if (request.Status.HasValue)
-                filtered = filtered.Where(br => br.Status == request.Status.Value);
+            {
+                Query = Query.Where(br =>
+                    br.Status == request.Status.Value
+                );
+            }
 
-            int total = await filtered.CountAsync(ct);
+            int totalRecords = await Query.CountAsync(ct);
 
-            var items = await filtered
+            var items = await Query
                 .OrderByDescending(br => br.CreatedAt)
-                .Skip((page - 1) * request.PageSize)
+                .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(br => new BorrowRecordSummaryResponse
                 {
                     BorrowId = br.BorrowId,
                     BorrowCode = br.BorrowCode,
+                    ReaderId = br.ReaderId,
                     ReaderName = br.Reader.FullName,
                     BorrowDate = br.BorrowDate,
                     DueDate = br.DueDate,
+                    ReturnedDate = br.ReturnedDate,
+                    BorrowType = br.BorrowType.ToString(),
                     Status = br.Status.ToString(),
-                    ExtensionCount = br.ExtensionCount
-                })
-                .ToListAsync(ct);
+                    ExtensionCount = br.ExtensionCount,
+                    TotalBooks = br.BorrowDetails.Count()
+                }).ToListAsync(ct);
 
             return new PaginationResponse<BorrowRecordSummaryResponse>
             {
                 Items = items,
-                Page = page,
+                TotalRecords = totalRecords,
                 PageSize = request.PageSize,
-                TotalRecords = total
+                Page = request.Page,
             };
         }
 
-        // GET /users/:id/borrow-records — Lich su muon cua nguoi dung (UC09)
-        public async Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(
-            int userId, int page, int pageSize, CancellationToken ct = default)
+        // GET /users/:id/borrow-records — Lich su muon cua nguoi dung
+        public async Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(int userId, PaginationRequest request, CancellationToken ct = default)
         {
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 10 : pageSize > 50 ? 50 : pageSize;
+            var currentUserId = int.Parse(
+        _contextAccessor.HttpContext!
+            .User.FindFirst("UserId")!.Value);
 
-            var query = _context.BorrowRecords
-                .AsNoTracking()
-                .Include(br => br.Reader)
-                .Where(br => br.ReaderId == userId);
+            var currentRole =
+                _contextAccessor.HttpContext!
+                    .User.FindFirst(System.Security.Claims.ClaimTypes.Role)!
+                    .Value;
+
+            IQueryable<BorrowRecord> query = _context.BorrowRecords
+                .AsNoTracking();
+
+            // Reader chỉ xem dữ liệu của chính mình
+            if (currentRole == RoleName.READER.ToString())
+            {
+                if (currentUserId != userId)
+                {
+                    throw new ForbiddenException(
+                        "Ban khong co quyen xem lich su muon cua nguoi dung khac!");
+                }
+
+                query = query.Where(br => br.ReaderId == currentUserId);
+            }
+            else
+            {
+                // Staff/Admin xem theo userId được truyền vào
+                query = query.Where(br => br.ReaderId == userId);
+            }
 
             int total = await query.CountAsync(ct);
 
             var items = await query
                 .OrderByDescending(br => br.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(br => new BorrowRecordSummaryResponse
-                {
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(br => new BorrowRecordSummaryResponse{
                     BorrowId = br.BorrowId,
                     BorrowCode = br.BorrowCode,
+                    ReaderId = br.ReaderId,
                     ReaderName = br.Reader.FullName,
                     BorrowDate = br.BorrowDate,
                     DueDate = br.DueDate,
+                    ReturnedDate = br.ReturnedDate,
                     Status = br.Status.ToString(),
-                    ExtensionCount = br.ExtensionCount
+                    BorrowType = br.BorrowType.ToString(),
+                    ExtensionCount = br.ExtensionCount,
+                    TotalBooks = br.BorrowDetails.Count
                 })
                 .ToListAsync(ct);
 
             return new PaginationResponse<BorrowRecordSummaryResponse>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = request.Page,
+                PageSize = request.PageSize,
                 TotalRecords = total
             };
         }
 
-        // GET /borrow-records/:id — Chi tiet phieu muon (UC10)
+        // GET /borrow-records/:id — Chi tiet phieu muon
         public async Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, CancellationToken ct = default)
         {
-            var record = await _context.BorrowRecords
-                .AsNoTracking()
-                .Include(br => br.Reader)
-                .Include(br => br.Approver)
-                .Include(br => br.BorrowDetails)
-                    .ThenInclude(bd => bd.BookCopy)
-                        .ThenInclude(bc => bc.Book)
-                .FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
+            //var record = await _context.BorrowRecords
+            //    .AsNoTracking()
+            //    .Include(br => br.Reader)
+            //    .Include(br => br.Approver)
+            //    .Include(br => br.BorrowDetails)
+            //        .ThenInclude(bd => bd.BookCopy)
+            //            .ThenInclude(bc => bc.Book)
+            //    .FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
 
-            if (record is null)
-                throw new NotFoundException("Phieu muon khong ton tai!");
+            //if (record is null)
+            //    throw new NotFoundException("Phieu muon khong ton tai!");
 
-            return MapToDetailResponse(record);
+            //return MapToDetailResponse(record);
         }
 
-        // POST /borrow-records — Staff tao phieu muon moi (UC08)
+        // POST /borrow-records — Staff tao phieu muon moi
         public async Task<BorrowRecordDetailResponse> CreateBorrowRecordAsync(
             int staffId, CreateBorrowRecordRequest request, CancellationToken ct = default)
         {
             // B4: Kiem tra trang thai tai khoan
-            var reader = await _context.Users
-                .Include(u => u.LibraryCard)
-                .FirstOrDefaultAsync(u => u.UserId == request.ReaderId, ct);
+            //var reader = await _context.Users
+            //    .Include(u => u.LibraryCard)
+            //    .FirstOrDefaultAsync(u => u.UserId == request.ReaderId, ct);
 
-            if (reader is null)
-                throw new NotFoundException("Nguoi dung khong ton tai!");
+            //if (reader is null)
+            //    throw new NotFoundException("Nguoi dung khong ton tai!");
 
-            if (reader.Status == UserStatus.Locked)
-                throw new ForbiddenException("Tai khoan nguoi dung da bi khoa!");
+            //if (reader.Status == UserStatus.Locked)
+            //    throw new ForbiddenException("Tai khoan nguoi dung da bi khoa!");
 
-            if (reader.LibraryCard is null || reader.LibraryCard.Status != CardStatus.Active)
-                throw new ForbiddenException("The thu vien khong hop le hoac da bi khoa!");
+            //if (reader.LibraryCard is null || reader.LibraryCard.Status != CardStatus.Active)
+            //    throw new ForbiddenException("The thu vien khong hop le hoac da bi khoa!");
 
-            // B7: Kiem tra so sach toi da
-            if (request.CopyIds.Count > MaxBooksPerBorrow)
-                throw new BadRequestException($"Chi duoc muon toi da {MaxBooksPerBorrow} cuon sach moi lan!");
+            //// B7: Kiem tra so sach toi da
+            //if (request.CopyIds.Count > MaxBooksPerBorrow)
+            //    throw new BadRequestException($"Chi duoc muon toi da {MaxBooksPerBorrow} cuon sach moi lan!");
 
-            // Kiem tra so sach dang muon hien tai
-            int currentBorrowing = await _context.BorrowRecords
-                .Where(br => br.ReaderId == request.ReaderId
-                    && br.Status == BorrowStatus.Borrowing)
-                .SumAsync(br => br.BorrowDetails.Count(bd => bd.Status == BorrowDetailStatus.Borrowing), ct);
+            //// Kiem tra so sach dang muon hien tai
+            //int currentBorrowing = await _context.BorrowRecords
+            //    .Where(br => br.ReaderId == request.ReaderId
+            //        && br.Status == BorrowStatus.Borrowing)
+            //    .SumAsync(br => br.BorrowDetails.Count(bd => bd.Status == BorrowDetailStatus.Borrowing), ct);
 
-            if (currentBorrowing + request.CopyIds.Count > MaxBooksPerBorrow)
-                throw new BadRequestException($"Nguoi dung da muon {currentBorrowing} sach. Khong the muon them!");
+            //if (currentBorrowing + request.CopyIds.Count > MaxBooksPerBorrow)
+            //    throw new BadRequestException($"Nguoi dung da muon {currentBorrowing} sach. Khong the muon them!");
 
-            // B6: Kiem tra ban sao ton tai va con san
-            var copies = await _context.BookCopies
-                .Where(bc => request.CopyIds.Contains(bc.CopyId))
-                .ToListAsync(ct);
+            //// B6: Kiem tra ban sao ton tai va con san
+            //var copies = await _context.BookCopies
+            //    .Where(bc => request.CopyIds.Contains(bc.CopyId))
+            //    .ToListAsync(ct);
 
-            if (copies.Count != request.CopyIds.Count)
-                throw new NotFoundException("Mot so ban sao sach khong ton tai!");
+            //if (copies.Count != request.CopyIds.Count)
+            //    throw new NotFoundException("Mot so ban sao sach khong ton tai!");
 
-            var unavailable = copies.Where(bc => bc.Status != BookCopyStatus.Available).ToList();
-            if (unavailable.Any())
-                throw new BadRequestException($"Mot so sach khong con san: {string.Join(", ", unavailable.Select(c => c.Barcode))}");
+            //var unavailable = copies.Where(bc => bc.Status != BookCopyStatus.Available).ToList();
+            //if (unavailable.Any())
+            //    throw new BadRequestException($"Mot so sach khong con san: {string.Join(", ", unavailable.Select(c => c.Barcode))}");
 
-            // Tao phieu muon
-            var borrowRecord = new BorrowRecord
-            {
-                ReaderId = request.ReaderId,
-                ApprovedBy = staffId,
-                BorrowCode = GenerateBorrowCode(),
-                BorrowDate = DateTime.UtcNow,
-                DueDate = DateTime.UtcNow.AddDays(BorrowDurationDays),
-                ExtensionCount = 0,
-                BorrowType = request.BorrowType,
-                Status = BorrowStatus.Borrowing,
-                ApprovedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                BorrowDetails = copies.Select(c => new BorrowDetail
-                {
-                    CopyId = c.CopyId,
-                    Status = BorrowDetailStatus.Borrowing
-                }).ToList()
-            };
+            //// Tao phieu muon
+            //var borrowRecord = new BorrowRecord
+            //{
+            //    ReaderId = request.ReaderId,
+            //    ApprovedBy = staffId,
+            //    BorrowCode = GenerateBorrowCode(),
+            //    BorrowDate = DateTime.UtcNow,
+            //    DueDate = DateTime.UtcNow.AddDays(BorrowDurationDays),
+            //    ExtensionCount = 0,
+            //    BorrowType = request.BorrowType,
+            //    Status = BorrowStatus.Borrowing,
+            //    ApprovedAt = DateTime.UtcNow,
+            //    CreatedAt = DateTime.UtcNow,
+            //    BorrowDetails = copies.Select(c => new BorrowDetail
+            //    {
+            //        CopyId = c.CopyId,
+            //        Status = BorrowDetailStatus.Borrowing
+            //    }).ToList()
+            //};
 
-            await _context.BorrowRecords.AddAsync(borrowRecord, ct);
+            //await _context.BorrowRecords.AddAsync(borrowRecord, ct);
 
-            // B10: Cap nhat trang thai ban sao -> Borrowed
-            foreach (var copy in copies)
-            {
-                copy.Status = BookCopyStatus.Borrowed;
-            }
+            //// B10: Cap nhat trang thai ban sao -> Borrowed
+            //foreach (var copy in copies)
+            //{
+            //    copy.Status = BookCopyStatus.Borrowed;
+            //}
 
-            // Giam so luong kha dung tren bang books
-            var bookIds = copies.Select(c => c.BookId).Distinct().ToList();
-            foreach (var bookId in bookIds)
-            {
-                int count = copies.Count(c => c.BookId == bookId);
-                await _context.Books
-                    .Where(b => b.BookId == bookId)
-                    .ExecuteUpdateAsync(s =>
-                        s.SetProperty(b => b.AvailabilityCopies, b => b.AvailabilityCopies - count), ct);
-            }
+            //// Giam so luong kha dung tren bang books
+            //var bookIds = copies.Select(c => c.BookId).Distinct().ToList();
+            //foreach (var bookId in bookIds)
+            //{
+            //    int count = copies.Count(c => c.BookId == bookId);
+            //    await _context.Books
+            //        .Where(b => b.BookId == bookId)
+            //        .ExecuteUpdateAsync(s =>
+            //            s.SetProperty(b => b.AvailabilityCopies, b => b.AvailabilityCopies - count), ct);
+            //}
 
-            await _context.SaveChangesAsync(ct);
+            //await _context.SaveChangesAsync(ct);
 
-            return await GetBorrowRecordByIdAsync(borrowRecord.BorrowId, ct);
+            //return await GetBorrowRecordByIdAsync(borrowRecord.BorrowId, ct);
         }
 
-        // PATCH /borrow-records/:id/return — Staff xac nhan tra sach (UC13)
-        public async Task ConfirmReturnAsync(int borrowId, int staffId, ConfirmReturnRequest request, CancellationToken ct = default)
+        // | PATCH | /borrow-records/:id/return | Xác nhận trả sách | Staff/Admin |
+        public async Task ConfirmReturnAsync(
+           int borrowId,
+           ConfirmReturnRequest request,
+           CancellationToken ct = default)
         {
+            // Lấy phiếu mượn kèm danh sách sách đã mượn 
+            // và thông tin bản sao sách
             var record = await _context.BorrowRecords
                 .Include(br => br.BorrowDetails)
                     .ThenInclude(bd => bd.BookCopy)
                 .FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
 
-            if (record is null)
+            // Kiểm tra phiếu mượn có tồn tại không
+            if (record == null)
                 throw new NotFoundException("Phieu muon khong ton tai!");
 
-            if (record.Status != BorrowStatus.Borrowing && record.Status != BorrowStatus.Overdue)
-                throw new BadRequestException("Phieu muon khong o trang thai co the tra!");
+            // Chỉ cho phép xác nhận trả khi phiếu 
+            // đang ở trạng thái BORROWING hoặc OVERDUE
+            if (record.Status != BorrowStatus.BORROWING &&
+                record.Status != BorrowStatus.OVERDUE)
+                throw new BadRequestException("Phieu muon khong hop le!");
 
+            // Kiểm tra đã trả đầy đủ số lượng sách chưa
+            if (request.ReturnItems.Count != record.BorrowDetails.Count)
+                throw new BadRequestException("Chua tra day du sach!");
+
+            // Thời gian trả sách
             var now = DateTime.UtcNow;
-            bool isOverdue = now > record.DueDate;
 
-            // Cap nhat tung chi tiet muon
-            foreach (var detail in record.BorrowDetails.Where(d => d.Status == BorrowDetailStatus.Borrowing))
+            // Duyệt từng cuốn sách trong phiếu mượn
+            foreach (var detail in record.BorrowDetails)
             {
-                // Tim trang thai tra tuong ung cho tung ban sao (neu co trong request)
-                var returnItem = request.ReturnItems?.FirstOrDefault(r => r.CopyId == detail.CopyId);
+                // Tìm thông tin trả sách tương ứng
+                var returnItem = request.ReturnItems
+                    .FirstOrDefault(x => x.CopyId == detail.CopyId);
 
+                // Nếu không truyền condition thì mặc định NORMAL
+                var condition = returnItem?.Condition ?? BookCondition.NORMAL;
+
+                // Cập nhật thời gian trả và tình trạng sách
                 detail.ReturnedAt = now;
-                detail.Status = returnItem?.Condition switch
-                {
-                    BookCondition.Torn => BorrowDetailStatus.Damaged,
-                    BookCondition.Damaged => BorrowDetailStatus.Damaged,
-                    _ => BorrowDetailStatus.Returned
-                };
-                detail.ItemCondition = returnItem?.Condition ?? BookCondition.Normal;
+                detail.ItemCondition = condition;
 
-                // Cap nhat trang thai ban sao
-                var copy = detail.BookCopy;
-                copy.Status = detail.Status == BorrowDetailStatus.Damaged
-                    ? BookCopyStatus.Damaged
-                    : BookCopyStatus.Available;
+                // Cập nhật tình trạng của bản sao sách
+                detail.BookCopy.Condition = condition;
 
-                // Tang so luong sach kha dung neu tra binh thuong
-                if (copy.Status == BookCopyStatus.Available)
+                switch (condition)
                 {
-                    await _context.Books
-                        .Where(b => b.BookId == copy.BookId)
-                        .ExecuteUpdateAsync(s =>
-                            s.SetProperty(b => b.AvailabilityCopies, b => b.AvailabilityCopies + 1), ct);
+                    // Sách bình thường
+                    case BookCondition.NORMAL:
+                        detail.Status = BorrowDetailStatus.RETURNED;
+                        detail.BookCopy.Status = BookCopyStatus.AVAILABLE;
+                        break;
+
+                    // Sách rách hoặc hỏng
+                    case BookCondition.TORN:
+                    case BookCondition.DAMAGED:
+                        detail.Status = BorrowDetailStatus.DAMAGED;
+                        // Chờ staff xem xét, tạm ngưng lưu hành
+                        detail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
+
+                        await _context.Fines.AddAsync(new Fine
+                        {
+                            BorrowDetailId = detail.BorrowDetailId,
+                            FineType = FineType.DAMAGED,
+                            PaymentStatus = PaymentStatus.PENDING,
+                            CreatedAt = now
+                        }, ct);
+                        break;
+
+                    // Sách bị mất
+                    case BookCondition.LOST:
+                        // Đánh dấu chi tiết mượn là mất
+                        detail.Status = BorrowDetailStatus.LOST;
+                        // Bản sao sách chuyển sang LOST
+                        detail.BookCopy.Status = BookCopyStatus.LOST;
+                        // Tạo phiếu phạt mất sách
+                        await _context.Fines.AddAsync(new Fine
+                        {
+                            BorrowDetailId = detail.BorrowDetailId,
+                            FineType = FineType.LOST,
+                            PaymentStatus = PaymentStatus.PENDING,
+                            CreatedAt = now
+                        }, ct);
+
+                        break;
                 }
             }
 
-            record.Status = BorrowStatus.Returned;
+            // Kiểm tra trả sách quá hạn
+            if (now > record.DueDate)
+            {
+                // Tạo phiếu phạt quá hạn cho từng cuốn sách
+                foreach (var detail in record.BorrowDetails)
+                {
+                    await _context.Fines.AddAsync(new Fine
+                    {
+                        BorrowDetailId = detail.BorrowDetailId,
+                        FineType = FineType.OVERDUE,
+                        PaymentStatus = PaymentStatus.PENDING,
+                        CreatedAt = now
+                    }, ct);
+                }
+            }
+
+            // Cập nhật trạng thái phiếu mượn
+            record.Status = BorrowStatus.RETURNED;
             record.ReturnedDate = now;
 
+            // Lưu thay đổi xuống database
             await _context.SaveChangesAsync(ct);
-
-            // Gui thong bao tra sach thanh cong
-            await _notificationService.SendAsync(
-                record.ReaderId,
-                "Tra sach thanh cong",
-                $"Phieu muon {record.BorrowCode} da duoc xac nhan tra thanh cong.", ct);
         }
-
-        // PATCH /borrow-records/:id/cancel — Huy phieu muon (UC12)
+        // PATCH /borrow-records/:id/cancel — Huy phieu muon
         public async Task CancelBorrowRecordAsync(int borrowId, int currentUserId, string currentRole, CancellationToken ct = default)
         {
             var record = await _context.BorrowRecords
@@ -289,16 +383,16 @@ namespace HeThongQuanLyThuVien.Services
             if (currentRole == RoleName.READER.ToString() && record.ReaderId != currentUserId)
                 throw new ForbiddenException("Ban khong co quyen huy phieu muon nay!");
 
-            if (record.Status != BorrowStatus.Pending && record.Status != BorrowStatus.Borrowing)
+            if (record.Status != BorrowStatus.PENDING && record.Status != BorrowStatus.BORROWING)
                 throw new BadRequestException("Khong the huy phieu muon o trang thai hien tai!");
 
             // Tra lai ban sao ve Available neu dang Borrowing
-            if (record.Status == BorrowStatus.Borrowing)
+            if (record.Status == BorrowStatus.BORROWING)
             {
-                foreach (var detail in record.BorrowDetails.Where(d => d.Status == BorrowDetailStatus.Borrowing))
+                foreach (var detail in record.BorrowDetails.Where(d => d.Status == BorrowDetailStatus.BORROWING))
                 {
-                    detail.Status = BorrowDetailStatus.Returned;
-                    detail.BookCopy.Status = BookCopyStatus.Available;
+                    detail.Status = BorrowDetailStatus.RETURNED;
+                    detail.BookCopy.Status = BookCopyStatus.AVAILABLE;
 
                     await _context.Books
                         .Where(b => b.BookId == detail.BookCopy.BookId)
@@ -307,12 +401,12 @@ namespace HeThongQuanLyThuVien.Services
                 }
             }
 
-            record.Status = BorrowStatus.Cancelled;
+            record.Status = BorrowStatus.CANCELLED;
 
             await _context.SaveChangesAsync(ct);
         }
 
-        // POST /borrow-records/:id/extension-requests — Reader gui yeu cau gia han (UC11)
+        // POST /borrow-records/:id/extension-requests — Reader gui yeu cau gia han
         public async Task SubmitExtensionRequestAsync(int borrowId, int readerId, CancellationToken ct = default)
         {
             var record = await _context.BorrowRecords
@@ -331,7 +425,7 @@ namespace HeThongQuanLyThuVien.Services
                 ct);
         }
 
-        // PATCH /borrow-records/:id/extend — Staff duyet gia han (UC11)
+        // PATCH /borrow-records/:id/extend — Staff duyet gia han
         public async Task ConfirmExtensionAsync(int borrowId, int staffId, CancellationToken ct = default)
         {
             var record = await _context.BorrowRecords
@@ -367,32 +461,6 @@ namespace HeThongQuanLyThuVien.Services
             if (DateTime.UtcNow > record.DueDate)
                 throw new BadRequestException("Sach da qua han, khong the gia han!");
         }
-
-        private static BorrowRecordDetailResponse MapToDetailResponse(BorrowRecord br) => new()
-        {
-            BorrowId = br.BorrowId,
-            BorrowCode = br.BorrowCode,
-            ReaderId = br.ReaderId,
-            ReaderName = br.Reader?.FullName ?? string.Empty,
-            ApproverName = br.Approver?.FullName,
-            BorrowDate = br.BorrowDate,
-            DueDate = br.DueDate,
-            ReturnedDate = br.ReturnedDate,
-            ExtensionCount = br.ExtensionCount,
-            BorrowType = br.BorrowType.ToString(),
-            Status = br.Status.ToString(),
-            CreatedAt = br.CreatedAt,
-            Items = br.BorrowDetails.Select(d => new BorrowDetailItemResponse
-            {
-                BorrowDetailId = d.BorrowDetailId,
-                CopyId = d.CopyId,
-                Barcode = d.BookCopy?.Barcode ?? string.Empty,
-                BookTitle = d.BookCopy?.Book?.Title ?? string.Empty,
-                ReturnedAt = d.ReturnedAt,
-                ItemCondition = d.ItemCondition?.ToString(),
-                Status = d.Status.ToString()
-            }).ToList()
-        };
 
         private static string GenerateBorrowCode()
             => $"BR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N").ToUpper()[..6]}";

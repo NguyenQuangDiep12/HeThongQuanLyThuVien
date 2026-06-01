@@ -119,13 +119,20 @@ namespace HeThongQuanLyThuVien.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Neu mat sach, cap nhat trang thai ban sao
-            if (request.FineType == FineType.Lost)
+            if (request.FineType == FineType.LOST)
             {
                 await _context.BookCopies
                     .Where(bc => bc.CopyId == borrowDetail.CopyId)
                     .ExecuteUpdateAsync(s =>
-                        s.SetProperty(bc => bc.Status, BookCopyStatus.Lost), ct);
+                        s.SetProperty(bc => bc.Status, BookCopyStatus.LOST), ct);
+            }
+            else if (request.FineType == FineType.DAMAGED ||
+                     request.FineType == FineType.TORN)
+            {
+                await _context.BookCopies
+                    .Where(bc => bc.CopyId == borrowDetail.CopyId)
+                    .ExecuteUpdateAsync(s =>
+                        s.SetProperty(bc => bc.Status, BookCopyStatus.UNAVAILABLE), ct);
             }
 
             await _context.Fines.AddAsync(fine, ct);
@@ -142,10 +149,10 @@ namespace HeThongQuanLyThuVien.Services
             if (fine is null)
                 throw new NotFoundException("Phieu phat khong ton tai!");
 
-            if (fine.PaymentStatus == PaymentStatus.Paid)
+            if (fine.PaymentStatus == PaymentStatus.PAID)
                 throw new BadRequestException("Phieu phat nay da duoc thanh toan!");
 
-            fine.PaymentStatus = PaymentStatus.Paid;
+            fine.PaymentStatus = PaymentStatus.PAID;
             fine.PaidAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(ct);

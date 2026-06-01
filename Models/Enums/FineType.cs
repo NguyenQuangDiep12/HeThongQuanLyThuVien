@@ -2,8 +2,9 @@
 {
     public enum FineType 
     { 
-        Overdue, 
-        Lost, 
-        Damaged 
+        OVERDUE, 
+        LOST, 
+        DAMAGED,
+        TORN
     }
 }

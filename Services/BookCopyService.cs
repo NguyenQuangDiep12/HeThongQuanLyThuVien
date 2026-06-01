@@ -1,10 +1,12 @@
 ﻿using HeThongQuanLyThuVien.Data;
 using HeThongQuanLyThuVien.DTOs.BookCopies;
+using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.Exceptions;
 using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.InteropServices;
 
 namespace HeThongQuanLyThuVien.Services
 {
@@ -19,156 +21,111 @@ namespace HeThongQuanLyThuVien.Services
             _contextAccessor = contextAccessor;
         }
 
-        // GET /book-copies — Staff/Admin xem danh sach ban sao
-        public async Task<List<BookCopyResponse>> GetBookCopiesAsync(int? bookId, CancellationToken ct = default)
+        // GET /book-copies  STAFF/ADMIN
+        public async Task<PaginationResponse<BookCopyResponse>> GetBookCopiesAsync(GetBookCopiesRequest request, CancellationToken ct = default)
         {
-            var query = _context.BookCopies.AsNoTracking();
+            var query = _context.BookCopies
+                .AsNoTracking()
+                .Include(bc => bc.Book) // include de lay book title
+                .AsQueryable();
 
-            if (bookId.HasValue)
+            // 1. loc theo dieu kien dong BookId 
+            if (request.BookId.HasValue)
             {
-                query = query.Where(bc => bc.BookId == bookId);
+                query = query.Where(bc => bc.BookId == request.BookId.Value);
             }
 
-            return await query
+            // 2. loc theo Trang thai BookCopies:  Available, Borrowed, Reserved, Lost, Damaged
+            if (request.Status.HasValue)
+            {
+                query = query.Where(bc => bc.Status == request.Status.Value);
+            }
+
+            // 3. dem tong so ban ghi thoa man dieu kien loc
+            int total = await query.CountAsync(ct);
+
+            // 4. phan trang va select du lieu de toi uu hieu nang sang DTO response
+
+            var items = await query
+                .OrderBy(bc => bc.CopyId)
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .Select(bc => new BookCopyResponse
                 {
                     CopyId = bc.CopyId,
+                    Barcode = bc.Barcode,
                     BookId = bc.BookId,
                     BookTitle = bc.Book != null ? bc.Book.Title : string.Empty,
-                    Barcode = bc.Barcode,
                     ShelfLocation = bc.ShelfLocation,
+                    Condition = bc.Condition.ToString(),
                     Status = bc.Status.ToString(),
                     IsReferenceOnly = bc.IsReferenceOnly,
                     CreatedAt = bc.CreatedAt,
-                })
-                .ToListAsync(ct);
-        }
+                }).ToListAsync(ct);
 
-        // GET /book-copies/:id — Staff/Admin xem chi tiet ban sao
-        public async Task<BookCopyResponse> GetBookCopyByIdAsync(int copyId, CancellationToken ct = default)
-        {
-            var BookCopy = await _context.BookCopies
-                 .AsNoTracking()
-                 .Where(bc => bc.CopyId == copyId)
-                 .Select(bc => new BookCopyResponse
-                 {
-                     CopyId = bc.CopyId,
-                     BookId = bc.BookId,
-                     BookTitle = bc.Book != null ? bc.Book.Title : string.Empty,
-                     Barcode = bc.Barcode,
-                     ShelfLocation = bc.ShelfLocation,
-                     Status = bc.Status.ToString(),
-                     Condition = bc.Condition.ToString(),
-                     IsReferenceOnly = bc.IsReferenceOnly,
-                     CreatedAt = bc.CreatedAt
-                 })
-                 .FirstOrDefaultAsync(ct);
-
-            if(BookCopy == null)
+            // 5. Tra ve object ket qua boc trong PaginationResponse 
+            return new PaginationResponse<BookCopyResponse>
             {
-                throw new NotFoundException("Ban sao sach khong ton tai!");
-            }
-
-            return BookCopy;
-        }
-
-        // POST /book-copies/book/:id — Staff/Admin them ban sao cho mot dau sach
-        public async Task<BookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
-        {
-            bool bookExists = await _context.Books.AnyAsync(b => b.BookId == bookId, ct);
-            if (!bookExists)
-                throw new NotFoundException("Dau sach khong ton tai!");
-
-            bool barcodeExists = await _context.BookCopies.AnyAsync(bc => bc.Barcode == request.Barcode, ct);
-            if (barcodeExists)
-                throw new ConflictException("Ma barcode nay da ton tai!");
-
-            var copy = new BookCopy
-            {
-                BookId = bookId,
-                Barcode = request.Barcode,
-                ShelfLocation = request.ShelfLocation,
-                Status = BookCopyStatus.Available,
-                Condition = BookCondition.Normal,
-                IsReferenceOnly = request.IsReferenceOnly,
-                CreatedAt = DateTime.UtcNow
+                Items = items,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalRecords = total,
             };
-
-
         }
-
-        // PUT /book-copies/:id — Staff/Admin cap nhat toan bo thong tin ban sao (UC17)
-        public async Task<BookCopyResponse> UpdateBookCopyAsync(int copyId, UpdateBookCopyRequest request, CancellationToken ct = default)
+        // GET | /book-copies/:id     STAFF/ADMIN
+        public async Task<BookCopyDetailResponse> GetBookCopyByIdAsync(int copyId, CancellationToken ct = default)
         {
-            var copy = await _context.BookCopies
-                .Include(bc => bc.Book)
-                .FirstOrDefaultAsync(bc => bc.CopyId == copyId, ct);
+            var Data = await _context.BookCopies
+                .AsNoTracking()
+                .Where(bc => bc.CopyId == copyId)
+                .Select(bc => new BookCopyDetailResponse
+                {
+                    CopyId = bc.CopyId,
+                    Barcode = bc.Barcode,
+                    ShelfLocation = bc.ShelfLocation,
+                    Condition = bc.Condition.ToString(),
+                    Status = bc.Status.ToString(),
+                    IsReferenceOnly = bc.IsReferenceOnly,
+                    CreatedAt = bc.CreatedAt,
+                    BookId = bc.BookId,
+                    BookTitle = bc.Book != null ? bc.Book.Title : string.Empty,
+                    Isbn = bc.Book != null ? bc.Book.ISBN : string.Empty,
 
-            if (copy is null)
-                throw new NotFoundException("Ban sao sach khong ton tai!");
+                    // Lay ra danh sach chuoi ten tac gia (EF dich thanh SubQuery)
+                    AuthorName = bc.Book != null
+                        ? bc.Book.BookAuthors.Select(ba => ba.Author.AuthorName).ToList() : new List<string>(),
 
-            copy.ShelfLocation = request.ShelfLocation;
-            copy.Condition = request.Condition;
-            copy.IsReferenceOnly = request.IsReferenceOnly;
+                    Publisher = bc.Book != null && bc.Book.Publisher != null
+                        ? bc.Book.Publisher.PublisherName : null
+                })
+                .FirstOrDefaultAsync(ct);
 
-            await _context.SaveChangesAsync(ct);
-
-            return MapToResponse(copy);
-        }
-
-        // PATCH /book-copies/:id/status — Staff/Admin doi trang thai ban sao
-        public async Task ChangeBookCopyStatusAsync(int copyId, UpdateBookCopyStatusRequest request, CancellationToken ct = default)
-        {
-            var currentBookCopy = await _context.BookCopies
-                .FirstOrDefaultAsync(bc => bc.CopyId == copyId, ct);
-
-            if(currentBookCopy == null)
+            if (Data == null)
             {
                 throw new NotFoundException("Ban sao sach khong ton tai!");
             }
 
-            var oldStatus = currentBookCopy.Status;
-
-            // neu khong thay doi trang thai giu nguyen trang thai hien tai
-            if(oldStatus == request.Status)
-            {
-                return;
-            }
-
-            currentBookCopy.Status = request.Status;
-
-
+            return Data;
         }
 
-        // DELETE /book-copies/:id — chi Admin duoc xoa
-        public async Task DeleteBookCopyAsync(int copyId, CancellationToken ct = default)
+        public Task<BookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
         {
-            var copy = await _context.BookCopies
-                .Include(bc => bc.BorrowDetails)
-                .FirstOrDefaultAsync(bc => bc.CopyId == copyId, ct);
+            
+        }
 
-            if (copy is null)
-                throw new NotFoundException("Ban sao sach khong ton tai!");
+        public Task UpdateBookCopyAsync(int copyId, UpdateBookCopyRequest request, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
 
-            // Khong cho xoa neu dang duoc muon
-            bool isBorrowed = copy.BorrowDetails.Any(bd => bd.Status == BorrowDetailStatus.Borrowing);
-            if (isBorrowed)
-                throw new BadRequestException("Khong the xoa ban sao dang duoc muon!");
+        public Task ChangeBookCopyStatusAsync(int copyId, UpdateBookCopyStatusRequest request, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
+        }
 
-            int bookId = copy.BookId;
-            bool wasAvailable = copy.Status == BookCopyStatus.Available;
-
-            _context.BookCopies.Remove(copy);
-
-            if (wasAvailable)
-            {
-                await _context.Books
-                    .Where(b => b.BookId == bookId)
-                    .ExecuteUpdateAsync(s =>
-                        s.SetProperty(b => b.AvailabilityCopies, b => b.AvailabilityCopies - 1), ct);
-            }
-
-            await _context.SaveChangesAsync(ct);
+        public Task DeleteBookCopyAsync(int copyId, CancellationToken ct = default)
+        {
+            throw new NotImplementedException();
         }
     }
 }

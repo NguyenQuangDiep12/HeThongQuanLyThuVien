@@ -2,10 +2,9 @@
 {
     public enum ReservationStatus
     {
-        Waiting,
-        Ready,
-        Completed,
-        Cancelled,
-        Expired
+        WAITING, // Dang cho sach
+        COMPLETED, // Da chuyen thanh phieu muon
+        CANCELLED, // Da huy
+        EXPIRED // Het han dat truoc
     }
 }

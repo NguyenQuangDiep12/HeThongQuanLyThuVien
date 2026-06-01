@@ -21,6 +21,6 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         Task UpdateCategoryAsync(int categoryId, UpdateCategoryRequest request, CancellationToken ct = default);
 
         // DELETE /categories/:id  (chỉ Admin)
-        Task DeleteCategoryAsync(int categoryId, CancellationToken ct = default);
+        Task DeleteCategoryAsync(int categoryId, CancellationToken ct = default); 
     }
 }

@@ -1,9 +1,11 @@
 ﻿namespace HeThongQuanLyThuVien.Models.Enums
 {
+    // trang thai vat ly cua cuon sach , bi rach, hong , mat ....
     public enum BookCondition 
     { 
-        Normal, 
-        Torn, 
-        Damaged 
+        NORMAL, 
+        TORN, 
+        DAMAGED,
+        LOST
     }
 }

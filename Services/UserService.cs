@@ -313,7 +313,7 @@ namespace HeThongQuanLyThuVien.Services
 
             await _context.SaveChangesAsync(ct);
         }
-        // PATCH /users/:id/status - admin mo/ khoa tai khoan 
+        // PATCH /users/:id/status  Khóa / mở tài khoản  Admin
         public async Task UpdateUserStatusAsync(int userId, UpdateUserStatusRequest request, CancellationToken ct = default)
         {
             // Them check quyen Admin

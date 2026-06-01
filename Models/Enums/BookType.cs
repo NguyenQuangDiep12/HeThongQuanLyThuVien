@@ -2,7 +2,7 @@
 {
     public enum BorrowType 
     { 
-        ReadingOnSite, 
-        TakeHome 
+        READINGONSITE, 
+        TAKEHOME 
     }
 }

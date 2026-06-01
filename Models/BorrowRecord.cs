@@ -12,8 +12,8 @@ namespace HeThongQuanLyThuVien.Models
         public DateTime DueDate { get; set; }
         public DateTime? ReturnedDate { get; set; }
         public int ExtensionCount { get; set; }
-        public BorrowType BorrowType { get; set; } = BorrowType.TakeHome;
-        public BorrowStatus Status { get; set; } = BorrowStatus.Pending;
+        public BorrowType BorrowType { get; set; } = BorrowType.TAKEHOME;
+        public BorrowStatus Status { get; set; } = BorrowStatus.PENDING;
         public DateTime? ApprovedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         // Navigation

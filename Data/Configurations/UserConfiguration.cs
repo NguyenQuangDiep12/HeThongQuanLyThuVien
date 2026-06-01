@@ -57,7 +57,7 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(40)
                 .HasConversion<string>()
-                .HasDefaultValue(UserStatus.Active);
+                .HasDefaultValue(UserStatus.ACTIVE);
 
             builder.Property(u => u.CreatedAt)
                 .HasColumnName("created_at")

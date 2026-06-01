@@ -21,6 +21,6 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         Task UpdateAuthorAsync(int authorId, AuthorRequest request, CancellationToken ct = default);
 
         // DELETE /authors/:id  (chỉ Admin)
-        Task DeleteAuthorAsync(int authorId, CancellationToken ct = default);
+        Task DeleteAuthorAsync(int authorId, CancellationToken ct = default); 
     }
 }

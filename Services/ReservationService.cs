@@ -11,12 +11,10 @@ namespace HeThongQuanLyThuVien.Services
 {
     public class ReservationService : IReservationService
     {
-        // Han giu sach sau khi co san: 3 ngay
-        private const int ReservationHoldDays = 3;
+        private const int BorrowDurationDays = 7;
 
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
-
         public ReservationService(
             ApplicationDbContext context,
             INotificationService notificationService)
@@ -25,149 +23,244 @@ namespace HeThongQuanLyThuVien.Services
             _notificationService = notificationService;
         }
 
-        // GET /reservations — Staff/Admin xem danh sach dat truoc (UC23)
+        // GET /reservations — Staff/Admin xem danh sach dat truoc
         public async Task<PaginationResponse<ReservationResponse>> GetReservationsAsync(
-            int page, int pageSize, CancellationToken ct = default)
+            PaginationRequest request, CancellationToken ct = default)
         {
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 10 : pageSize > 50 ? 50 : pageSize;
-
-            var query = _context.Reservations
-                .AsNoTracking()
-                .Include(r => r.User)
-                .Include(r => r.Book);
+            var query = _context.Reservations.AsNoTracking();
 
             int total = await query.CountAsync(ct);
 
             var items = await query
                 .OrderByDescending(r => r.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(r => MapToResponse(r))
-                .ToListAsync(ct);
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(r => new ReservationResponse(
+                    r.ReservationId,
+                    r.UserId,
+                    r.User.FullName,
+                    r.BookId,
+                    r.Book.Title,
+                    r.Status.ToString(),
+                    r.CreatedAt
+                )).ToListAsync(ct);
 
             return new PaginationResponse<ReservationResponse>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = request.Page,
+                PageSize = request.PageSize,
                 TotalRecords = total
             };
         }
 
-        // POST /reservations — Staff tao phieu dat truoc (UC23)
+        // POST /reservations — Staff tao phieu dat truoc
         public async Task<ReservationResponse> CreateReservationAsync(
             CreateReservationRequest request, CancellationToken ct = default)
         {
-            // Kiem tra sach ton tai
-            var book = await _context.Books
-                .FirstOrDefaultAsync(b => b.BookId == request.BookId, ct);
+            // TH1: Kiem tra nguoi dung
+            var user = await _context.Users
+                .AsNoTracking()
+                .Include(u => u.LibraryCard)
+                .FirstOrDefaultAsync(u => u.UserId == request.UserId, ct);
 
-            if (book is null)
+            if (user == null)
+                throw new NotFoundException("Nguoi dung khong ton tai!");
+
+            // Kiem tra tai khoan bi khoa
+            if (user.Status != UserStatus.ACTIVE)
+                throw new BadRequestException("Tai khoan nguoi dung dang bi khoa hoac tam ngung!");
+
+            // Kiem tra the thu vien
+            if (user.LibraryCard == null)
+                throw new BadRequestException("Nguoi dung chua duoc cap the thu vien!");
+
+            if (user.LibraryCard.Status != CardStatus.ACTIVE)
+                throw new BadRequestException("The thu vien da bi khoa hoac het han!");
+
+            if (user.LibraryCard.ExpiredAt < DateTime.UtcNow)
+                throw new BadRequestException("The thu vien da het han!");
+
+            // --- TH2: Kiem tra phieu phat chua thanh toan ---
+            // Neu nguoi dung con phieu phat PENDING thi khong cho dat truoc
+            bool hasUnpaidFine = await _context.Fines
+                .AsNoTracking()
+                .AnyAsync(f =>
+                    f.BorrowDetail.BorrowRecord.ReaderId == request.UserId &&
+                    f.PaymentStatus == PaymentStatus.PENDING,
+                ct);
+
+            if (hasUnpaidFine)
+                throw new BadRequestException("Nguoi dung con phieu phat chua thanh toan, khong the dat truoc sach!");
+
+            // TH3: Kiem tra dau sach
+            bool bookExists = await _context.Books
+                .AsNoTracking()
+                .AnyAsync(b => b.BookId == request.BookId, ct);
+
+            if (!bookExists)
                 throw new NotFoundException("Sach khong ton tai!");
 
-            // Kiem tra sach hien tai khong con san (moi dat truoc khi het sach)
-            if (book.AvailabilityCopies > 0)
-                throw new BadRequestException("Sach hien van con ban sao kha dung, vui long muon truc tiep!");
+            // Chi cho dat truoc khi KHONG con ban sao nao kha dung
+            bool hasAvailableCopy = await _context.BookCopies
+                .AsNoTracking()
+                .AnyAsync(bc =>
+                    bc.BookId == request.BookId &&
+                    bc.Status == BookCopyStatus.AVAILABLE &&
+                    !bc.IsReferenceOnly,
+                ct);
 
-            // B4a: Nguoi dung da co dat truoc chua
+            if (hasAvailableCopy)
+                throw new BadRequestException("Sach van con ban sao kha dung, vui long muon truc tiep!");
+
+            // --- TH4: Kiem tra da dat truoc chua ---
             bool alreadyReserved = await _context.Reservations
+                .AsNoTracking()
                 .AnyAsync(r =>
                     r.UserId == request.UserId &&
                     r.BookId == request.BookId &&
-                    r.Status == ReservationStatus.Waiting, ct);
+                    r.Status == ReservationStatus.WAITING,
+                ct);
 
             if (alreadyReserved)
                 throw new ConflictException("Nguoi dung da dat truoc cuon sach nay!");
 
+            // --- Tao phieu dat truoc ---
             var reservation = new Reservation
             {
                 UserId = request.UserId,
                 BookId = request.BookId,
-                ExpiryDate = DateTime.UtcNow.AddDays(ReservationHoldDays),
-                Status = ReservationStatus.Waiting,
+                Status = ReservationStatus.WAITING,
                 CreatedAt = DateTime.UtcNow
             };
 
             await _context.Reservations.AddAsync(reservation, ct);
             await _context.SaveChangesAsync(ct);
 
-            var saved = await _context.Reservations
-                .Include(r => r.User)
-                .Include(r => r.Book)
-                .FirstAsync(r => r.ReservationId == reservation.ReservationId, ct);
-
-            return MapToResponse(saved);
+            // Tra ve response voi full thong tin bang 1 query
+            return await _context.Reservations
+                .AsNoTracking()
+                .Where(r => r.ReservationId == reservation.ReservationId)
+                .Select(r => new ReservationResponse(
+                    r.ReservationId,
+                    r.UserId,
+                    r.User.FullName,
+                    r.BookId,
+                    r.Book.Title,
+                    r.Status.ToString(),
+                    r.CreatedAt
+                ))
+                .FirstAsync(ct);
         }
 
-        // PATCH /reservations/:id/cancel — Huy dat truoc (UC23)
+        // PATCH /reservations/:id/cancel — Huy dat truoc   ADMIN/STAFF
         public async Task CancelReservationAsync(int reservationId, CancellationToken ct = default)
         {
-            var reservation = await _context.Reservations.FindAsync(new object[] { reservationId }, ct);
+            var reservation = await _context.Reservations
+                .FirstOrDefaultAsync(
+                r => r.ReservationId == reservationId, 
+                ct);
 
-            if (reservation is null)
+            if(reservation == null)
+            {
                 throw new NotFoundException("Phieu dat truoc khong ton tai!");
+            }
 
-            if (reservation.Status != ReservationStatus.Waiting && reservation.Status != ReservationStatus.Ready)
-                throw new BadRequestException("Khong the huy phieu dat truoc o trang thai hien tai!");
+            if(reservation.Status != ReservationStatus.WAITING)
+            {
+                throw new BadRequestException("Chi duoc huy phieu dat truoc dang cho!");
+            }
 
-            reservation.Status = ReservationStatus.Cancelled;
+            reservation.Status = ReservationStatus.CANCELLED;
             reservation.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(ct);
         }
 
-        // PATCH /reservations/:id/complete — Chuyen dat truoc thanh phieu muon (UC23 - B6)
+        // PATCH /reservations/:id/complete — Chuyen dat truoc thanh phieu muon
         // Goi khi sach da co san, Staff xac nhan chuyen sang muon
         public async Task<int> CompleteReservationAsync(int reservationId, int staffId, CancellationToken ct = default)
         {
             var reservation = await _context.Reservations
                 .Include(r => r.Book)
+                    .ThenInclude(b => b.BookCopies)
                 .FirstOrDefaultAsync(r => r.ReservationId == reservationId, ct);
 
-            if (reservation is null)
+            if(reservation == null)
+            {
                 throw new NotFoundException("Phieu dat truoc khong ton tai!");
+            }
 
-            if (reservation.Status != ReservationStatus.Ready)
-                throw new BadRequestException("Phieu dat truoc chua o trang thai san sang de chuyen thanh phieu muon!");
+            /***
+             * WAITING => dang cho => co the complete hoac cancel
+             * COMPLETED => da chuyen thanh phieu muon khong the thao tac
+             * CANCELLED => da huy khong the thao tac
+             * EXPIRED => het han khong the thao tac
+             */
 
-            // Tim ban sao kha dung de gan vao phieu muon
-            var availableCopy = await _context.BookCopies
-                .FirstOrDefaultAsync(bc =>
-                    bc.BookId == reservation.BookId &&
-                    bc.Status == BookCopyStatus.Available &&
-                    !bc.IsReferenceOnly, ct);
+            if(reservation.Status != ReservationStatus.WAITING)
+            {
+                throw new BadRequestException("chi co the chuyen phieu dang o trang thai waiting thanh phieu muon!");
+            }
 
-            if (availableCopy is null)
-                throw new BadRequestException("Khong con ban sao kha dung de tao phieu muon!");
+            // Tim ban sao Available cua dau sach nay
+            var availableCopy = reservation.Book.BookCopies
+                .FirstOrDefault(bc => bc.Status == BookCopyStatus.AVAILABLE);
 
-            // Tao phieu muon tu phieu dat truoc
+            if(availableCopy == null)
+            {
+                throw new BadRequestException("Hien tai khong co ban sao kha dung de tao phieu muon!");
+            }
+
+            // Kiem tra nguoi dung con hop le
+            var user = await _context.Users
+                .AsNoTracking()
+                .Include(u => u.LibraryCard)
+                .FirstOrDefaultAsync(u => u.UserId == reservation.UserId, ct);
+
+            if(user == null)
+            {
+                throw new NotFoundException("Nguoi dung khong ton tai!");
+            }
+
+            if(user.Status != UserStatus.ACTIVE)
+            {
+                throw new BadRequestException("The thu vien khong hop le hoac bi khoa!");
+            }
+
+            if(user.LibraryCard.ExpiredAt < DateTime.UtcNow)
+            {
+                throw new BadRequestException("The thu vien da het han!");
+            }
+
+            // Tao phieu muon
             var borrowRecord = new BorrowRecord
             {
                 ReaderId = reservation.UserId,
                 ApprovedBy = staffId,
-                BorrowCode = $"BR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N").ToUpper()[..6]}",
+                BorrowCode = GenerateBorrowCode(),
                 BorrowDate = DateTime.UtcNow,
-                DueDate = DateTime.UtcNow.AddDays(7),
+                DueDate = DateTime.UtcNow.AddDays(BorrowDurationDays),
                 ExtensionCount = 0,
-                BorrowType = BorrowType.TakeHome,
-                Status = BorrowStatus.Borrowing,
+                BorrowType = BorrowType.TAKEHOME,
+                Status = BorrowStatus.BORROWING,
                 ApprovedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
                 BorrowDetails = new List<BorrowDetail>
                 {
-                    new() { CopyId = availableCopy.CopyId, Status = BorrowDetailStatus.Borrowing }
+                    new BorrowDetail
+                    {
+                        CopyId = availableCopy.CopyId,
+                        Status = BorrowDetailStatus.BORROWING,
+                    }
                 }
             };
 
-            availableCopy.Status = BookCopyStatus.Borrowed;
+            // Cap nhat trang thai ban sao: available => borrowed
+            availableCopy.Status = BookCopyStatus.BORROWED;
 
-            await _context.Books
-                .Where(b => b.BookId == reservation.BookId)
-                .ExecuteUpdateAsync(s =>
-                    s.SetProperty(b => b.AvailabilityCopies, b => b.AvailabilityCopies - 1), ct);
-
-            reservation.Status = ReservationStatus.Completed;
+            // Cap nhat trang thai phieu dat truong WAITING => COMPLETED
+            reservation.Status = ReservationStatus.COMPLETED;
             reservation.UpdatedAt = DateTime.UtcNow;
 
             await _context.BorrowRecords.AddAsync(borrowRecord, ct);
@@ -176,23 +269,17 @@ namespace HeThongQuanLyThuVien.Services
             await _notificationService.SendAsync(
                 reservation.UserId,
                 "Dat truoc sach thanh cong",
-                $"Sach '{reservation.Book.Title}' da san sang. Phieu muon {borrowRecord.BorrowCode} da duoc tao.", ct);
+                $"Sach {reservation.Book.Title} da duoc chuyen thanh phieu muon {borrowRecord.BorrowCode}. Han tra: {borrowRecord.DueDate:yyyy:MM:dd}",
+                ct);
 
-            return borrowRecord.BorrowId;
+            return borrowRecord.BorrowId; // tra ve BorrowId 
+
         }
 
-        // Private helper
-        private static ReservationResponse MapToResponse(Reservation r) => new()
+        // private function helper
+        private static string GenerateBorrowCode()
         {
-            ReservationId = r.ReservationId,
-            UserId = r.UserId,
-            UserName = r.User?.FullName ?? string.Empty,
-            BookId = r.BookId,
-            BookTitle = r.Book?.Title ?? string.Empty,
-            ExpiryDate = r.ExpiryDate,
-            Status = r.Status.ToString(),
-            CreatedAt = r.CreatedAt,
-            UpdatedAt = r.UpdatedAt
-        };
+            return $"BR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N").ToUpper()[..6]}";
+        }
     }
 }

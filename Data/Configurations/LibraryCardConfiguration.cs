@@ -36,7 +36,7 @@
                     .IsRequired()
                     .HasMaxLength(20)
                     .HasConversion<string>()
-                    .HasDefaultValue(CardStatus.Active);
+                    .HasDefaultValue(CardStatus.ACTIVE);
 
                 builder.Property(lc => lc.IssuedAt)
                     .HasColumnName("issued_at")

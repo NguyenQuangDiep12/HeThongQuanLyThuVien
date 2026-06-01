@@ -9,7 +9,7 @@ namespace HeThongQuanLyThuVien.Models
         public int CopyId { get; set; }
         public DateTime? ReturnedAt { get; set; }
         public BookCondition? ItemCondition { get; set; }
-        public BorrowDetailStatus Status { get; set; } = BorrowDetailStatus.Borrowing;
+        public BorrowDetailStatus Status { get; set; } = BorrowDetailStatus.BORROWING;
         // Navigation
         public BorrowRecord BorrowRecord { get; set; } = null!;
         public BookCopy BookCopy { get; set; } = null!;

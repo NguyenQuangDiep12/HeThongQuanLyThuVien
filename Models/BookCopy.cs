@@ -8,8 +8,8 @@ namespace HeThongQuanLyThuVien.Models
         public int BookId { get; set; }
         public string Barcode { get; set; } = string.Empty; // Ma sach noi bo
         public string? ShelfLocation { get; set; }
-        public BookCopyStatus Status { get; set; } = BookCopyStatus.Available;
-        public BookCondition Condition { get; set; } = BookCondition.Normal;
+        public BookCopyStatus Status { get; set; } = BookCopyStatus.AVAILABLE;
+        public BookCondition Condition { get; set; } = BookCondition.NORMAL;
         public bool IsReferenceOnly { get; set; }
         public DateTime CreatedAt { get; set; }
         // Navigation

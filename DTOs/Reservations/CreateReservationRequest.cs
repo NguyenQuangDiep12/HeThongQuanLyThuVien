@@ -1,6 +1,4 @@
 ﻿namespace HeThongQuanLyThuVien.DTOs.Reservations
 {
-    public class CreateReservationRequest
-    {
-    }
+    public record CreateReservationRequest(int UserId, int BookId);
 }

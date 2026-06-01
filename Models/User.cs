@@ -12,7 +12,7 @@ namespace HeThongQuanLyThuVien.Models
         public string Phone { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
-        public UserStatus Status { get; set; } = UserStatus.Active;
+        public UserStatus Status { get; set; } = UserStatus.ACTIVE;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         // Navigation

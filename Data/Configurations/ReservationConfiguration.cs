@@ -25,16 +25,12 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .HasColumnName("book_id")
                 .IsRequired();
 
-            builder.Property(r => r.ExpiryDate)
-                .HasColumnName("expiry_date")
-                .IsRequired();
-
             builder.Property(r => r.Status)
                 .HasColumnName("status")
                 .IsRequired()
                 .HasMaxLength(30)
                 .HasConversion<string>()
-                .HasDefaultValue(ReservationStatus.Waiting);
+                .HasDefaultValue(ReservationStatus.WAITING);
 
             builder.Property(r => r.CreatedAt)
                 .HasColumnName("created_at")

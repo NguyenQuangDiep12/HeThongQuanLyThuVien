@@ -38,19 +38,14 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(30)
                 .HasConversion<string>()
-                .HasDefaultValue(BookCopyStatus.Available);
+                .HasDefaultValue(BookCopyStatus.AVAILABLE);
 
             builder.Property(bc => bc.Condition)
                 .HasColumnName("condition")
                 .IsRequired()
                 .HasMaxLength(30)
                 .HasConversion<string>()
-                .HasDefaultValue(BookCondition.Normal);
-
-            builder.Property(bc => bc.IsReferenceOnly)
-                .HasColumnName("is_reference_only")
-                .IsRequired()
-                .HasDefaultValue(false);
+                .HasDefaultValue(BookCondition.NORMAL);
 
             builder.Property(bc => bc.CreatedAt)
                 .HasColumnName("created_at")

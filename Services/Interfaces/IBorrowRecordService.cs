@@ -18,12 +18,10 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
     public interface IBorrowRecordService
     {
         // UC09 (Staff/Admin) — GET /borrow-records
-        Task<PaginationResponse<BorrowRecordResponse>> GetListBorrowRecordsAsync(
-            int page, int pageSize, CancellationToken ct = default);
+        Task<PaginationResponse<BorrowRecordSummaryResponse>> GetBorrowRecordsAsync(BorrowRecordQueryRequest request, CancellationToken ct = default);
 
         // UC09 (Owner/Staff/Admin) — GET /users/:id/borrow-records
-        Task<PaginationResponse<BorrowRecordResponse>> GetUserBorrowRecordsAsync(
-            int userId, int page, int pageSize, CancellationToken ct = default);
+        Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(int userId, PaginationRequest request, CancellationToken ct = default);
 
         // UC10 — GET /borrow-records/:id
         Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, CancellationToken ct = default);

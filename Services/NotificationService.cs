@@ -1,7 +1,5 @@
-﻿// ============================================================
-// NotificationService.cs
-// ============================================================
-using HeThongQuanLyThuVien.Data;
+﻿using HeThongQuanLyThuVien.Data;
+using HeThongQuanLyThuVien.DTOs.Notifications;
 using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
@@ -19,23 +17,23 @@ namespace HeThongQuanLyThuVien.Services
         }
 
         // GET /notifications — Reader lay danh sach thong bao (UC24)
-        public async Task<List<NotificationResponse>> GetNotificationsAsync(int userId, CancellationToken ct = default)
-        {
-            return await _context.Notifications
-                .AsNoTracking()
-                .Where(n => n.UserId == userId)
-                .OrderByDescending(n => n.CreatedAt)
-                .Select(n => new NotificationResponse
-                {
-                    NotificationId = n.NotificationId,
-                    Title = n.Title,
-                    Content = n.Content,
-                    IsRead = n.IsRead,
-                    ReadAt = n.ReadAt,
-                    CreatedAt = n.CreatedAt
-                })
-                .ToListAsync(ct);
-        }
+        //public async Task<List<NotificationResponse>> GetNotificationsAsync(int userId, CancellationToken ct = default)
+        //{
+        //    return await _context.Notifications
+        //        .AsNoTracking()
+        //        .Where(n => n.UserId == userId)
+        //        .OrderByDescending(n => n.CreatedAt)
+        //        .Select(n => new NotificationResponse
+        //        {
+        //            NotificationId = n.NotificationId,
+        //            Title = n.Title,
+        //            Content = n.Content,
+        //            IsRead = n.IsRead,
+        //            ReadAt = n.ReadAt,
+        //            CreatedAt = n.CreatedAt
+        //        })
+        //        .ToListAsync(ct);
+        //}
 
         // PATCH /notifications/read-all — Danh dau tat ca da doc (UC24)
         public async Task MarkAllAsReadAsync(int userId, CancellationToken ct = default)
@@ -83,15 +81,5 @@ namespace HeThongQuanLyThuVien.Services
             await _context.Notifications.AddRangeAsync(notifications, ct);
             await _context.SaveChangesAsync(ct);
         }
-    }
-
-    public class NotificationResponse
-    {
-        public int NotificationId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string? Content { get; set; }
-        public bool IsRead { get; set; }
-        public DateTime? ReadAt { get; set; }
-        public DateTime CreatedAt { get; set; }
     }
 }

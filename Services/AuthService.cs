@@ -52,7 +52,7 @@ namespace HeThongQuanLyThuVien.Services
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Phone = request.Phone,
                 Address = string.Empty,
-                Status = UserStatus.Active,
+                Status = UserStatus.ACTIVE,
             };
 
             await _context.Users.AddAsync(user, ct);
@@ -62,7 +62,7 @@ namespace HeThongQuanLyThuVien.Services
             {
                 UserId = user.UserId,
                 LibraryCardCode = GenerateLibraryCardCode(),
-                Status = CardStatus.Active,
+                Status = CardStatus.ACTIVE,
                 IssuedAt = DateTime.UtcNow,
                 ExpiredAt = DateTime.UtcNow.AddYears(3), // the thu vien co thoi han 3 nam tinh tu luc tao
             };
@@ -92,7 +92,7 @@ namespace HeThongQuanLyThuVien.Services
             if (userExist is null)
                 throw new UnauthorizedException("Tai khoan Email khong ton tai!");
 
-            if (userExist.Status == UserStatus.Locked)
+            if (userExist.Status == UserStatus.LOCKED)
                 throw new ForbiddenException("Tai khoan da bi khoa!");
 
             bool isPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.Password, userExist.PasswordHash);

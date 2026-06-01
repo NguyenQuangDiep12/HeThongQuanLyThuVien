@@ -122,3 +122,22 @@ Usecase chung
 24. Xem thống kê tổng quan
 25. Xem danh sách quá hạn
 26. Xem sách được mượn nhiều nhất
+
+
+Ti viet ham check thoi gian ReservationStatus trang thai Expiry
+
+-- UserService: Done
+-- StatisticsService: Done
+-- ReservationService: Done
+-- PublisherService: Done
+-- MailService: Done
+-- JwtService: Done
+-- CategoryService: Done
+-- AuthorService: Done
+-- AuthService: Done
+
+-- BookCopyService: PENDING
+== BookService: PENDING
+-- FineService: PENDING
+-- Notification: PENDING
+-- BorrowRecordService: PEDING

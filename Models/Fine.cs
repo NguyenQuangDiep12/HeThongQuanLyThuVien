@@ -9,7 +9,7 @@ namespace HeThongQuanLyThuVien.Models
         public decimal Amount { get; set; }
         public string Reason { get; set; } = string.Empty;
         public FineType FineType { get; set; }
-        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
+        public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.PENDING;
         public DateTime? PaidAt { get; set; }
         public DateTime CreatedAt { get; set; }
         // Navigation
