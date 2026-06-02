@@ -23,14 +23,12 @@ namespace HeThongQuanLyThuVien.Services
                 .Where(u => u.Role.RoleName == RoleName.READER)
                 .CountAsync(ct);
             var totalBorrowRecords = await _context.BorrowRecords.CountAsync(ct);
-
             var now = DateTime.UtcNow;
             var totalOverdue = await _context.BorrowRecords
                 .Where(br =>
                     br.Status == BorrowStatus.BORROWING &&
                     br.DueDate < now)
                 .CountAsync(ct);
-
             return new OverviewStatsResponse
             {
                 TotalBooks = totalBooks,
@@ -39,7 +37,6 @@ namespace HeThongQuanLyThuVien.Services
                 TotalOverdueRecords = totalOverdue
             };
         }
-
         // GET /stats/overdue — Danh sach phieu muon qua han
         public async Task<List<OverdueBorrowResponse>> GetOverdueRecordsAsync(CancellationToken ct = default)
         {
@@ -61,7 +58,6 @@ namespace HeThongQuanLyThuVien.Services
                 .OrderByDescending(x => x.OverdueDays)
                 .ToListAsync(ct);
         }
-
         // GET /stats/top-books — Sach duoc muon nhieu nhat
         public async Task<List<TopBookResponse>> GetTopBooksAsync(int top = 10, CancellationToken ct = default)
         {

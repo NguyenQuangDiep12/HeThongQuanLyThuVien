@@ -18,159 +18,173 @@ namespace HeThongQuanLyThuVien.Services
             _context = context;
         }
 
-        // GET /fines — Staff/Admin xem danh sach phieu phat (UC14)
-        public async Task<PaginationResponse<FineResponse>> GetFinesAsync(
-            int page, int pageSize, CancellationToken ct = default)
-        {
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 10 : pageSize > 50 ? 50 : pageSize;
 
+        // | GET | /fines | Danh sách phiếu phạt | Staff/Admin |
+        public async Task<PaginationResponse<FineResponse>> GetFinesAsync(PaginationRequest request,CancellationToken ct = default)
+        {
             var query = _context.Fines
-                .AsNoTracking()
-                .Include(f => f.BorrowDetail)
-                    .ThenInclude(bd => bd.BorrowRecord)
-                        .ThenInclude(br => br.Reader);
+                .AsNoTracking();
 
             int total = await query.CountAsync(ct);
 
             var items = await query
                 .OrderByDescending(f => f.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(f => MapToResponse(f))
-                .ToListAsync(ct);
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(f => new FineResponse
+                {
+                    FineId = f.FineId,
+                    BorrowDetailId = f.BorrowDetailId,
+                    BorrowCode = f.BorrowDetail.BorrowRecord.BorrowCode,
+                    ReaderId = f.BorrowDetail.BorrowRecord.ReaderId,
+                    ReaderName = f.BorrowDetail.BorrowRecord.Reader.FullName,
+                    Amount = f.Amount,
+                    Reason = f.Reason,
+                    FineType = f.FineType,
+                    PaymentStatus = f.PaymentStatus,
+                    PaidAt = f.PaidAt,
+                    CreatedAt = f.CreatedAt
+                }).ToListAsync(ct);
 
             return new PaginationResponse<FineResponse>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = request.Page,
+                PageSize = request.PageSize,
                 TotalRecords = total
             };
         }
 
-        // GET /fines/:id — Chi tiet phieu phat
+        // | GET | /fines/:id | Chi tiết phiếu phạt | Staff/Admin |
         public async Task<FineResponse> GetFineByIdAsync(int fineId, CancellationToken ct = default)
         {
-            var fine = await _context.Fines
-                .AsNoTracking()
-                .Include(f => f.BorrowDetail)
-                    .ThenInclude(bd => bd.BorrowRecord)
-                        .ThenInclude(br => br.Reader)
-                .FirstOrDefaultAsync(f => f.FineId == fineId, ct);
+            var fine = await _context.Fines.AsNoTracking().Where(f => f.FineId == fineId)
+                .Select(f => new FineResponse
+                {
+                    FineId = f.FineId,
+                    BorrowDetailId = f.BorrowDetailId,
+                    BorrowCode = f.BorrowDetail
+                        .BorrowRecord
+                        .BorrowCode,
+                    ReaderId = f.BorrowDetail
+                        .BorrowRecord
+                        .ReaderId,
+                    ReaderName = f.BorrowDetail
+                        .BorrowRecord
+                        .Reader
+                        .FullName,
+                    Amount = f.Amount,
+                    Reason = f.Reason,
+                    FineType = f.FineType,
+                    PaymentStatus = f.PaymentStatus,
+                    PaidAt = f.PaidAt,
+                    CreatedAt = f.CreatedAt
+                }).FirstOrDefaultAsync(ct);
 
-            if (fine is null)
-                throw new NotFoundException("Phieu phat khong ton tai!");
-
-            return MapToResponse(fine);
+            if (fine is null)throw new NotFoundException("Phieu phat khong ton tai!");
+            return fine;
         }
-
-        // GET /users/:id/fines — Xem lich su vi pham cua nguoi dung (UC14)
-        public async Task<PaginationResponse<FineResponse>> GetUserFinesAsync(
-            int userId, int page, int pageSize, CancellationToken ct = default)
+        // | GET | /users/:id/fines | Theo dõi vi phạm của người dùng | Staff/Admin |
+        public async Task<PaginationResponse<FineResponse>> GetUserFinesAsync(int userId,PaginationRequest request,CancellationToken ct = default)
         {
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 10 : pageSize > 50 ? 50 : pageSize;
+            bool userExists = await _context.Users.AnyAsync(u => u.UserId == userId, ct);
 
-            var query = _context.Fines
-                .AsNoTracking()
-                .Include(f => f.BorrowDetail)
-                    .ThenInclude(bd => bd.BorrowRecord)
-                        .ThenInclude(br => br.Reader)
-                .Where(f => f.BorrowDetail.BorrowRecord.ReaderId == userId);
+            if (!userExists) throw new NotFoundException("Nguoi dung khong ton tai!");
+
+            var query = _context.Fines.AsNoTracking().Where(f => f.BorrowDetail.BorrowRecord.ReaderId == userId);
 
             int total = await query.CountAsync(ct);
 
             var items = await query
                 .OrderByDescending(f => f.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(f => MapToResponse(f))
-                .ToListAsync(ct);
-
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(f => new FineResponse
+                {
+                    FineId = f.FineId,
+                    BorrowDetailId = f.BorrowDetailId,
+                    BorrowCode = f.BorrowDetail.BorrowRecord.BorrowCode,
+                    ReaderId = f.BorrowDetail.BorrowRecord.ReaderId,
+                    ReaderName = f.BorrowDetail.BorrowRecord.Reader.FullName,
+                    Amount = f.Amount,
+                    Reason = f.Reason,
+                    FineType = f.FineType,
+                    PaymentStatus = f.PaymentStatus,
+                    PaidAt = f.PaidAt,
+                    CreatedAt = f.CreatedAt
+                }).ToListAsync(ct);
             return new PaginationResponse<FineResponse>
             {
                 Items = items,
-                Page = page,
-                PageSize = pageSize,
+                Page = request.Page,
+                PageSize = request.PageSize,
                 TotalRecords = total
             };
         }
 
-        // POST /fines — Staff tao phieu phat (UC14)
-        public async Task<FineResponse> CreateFineAsync(CreateFineRequest request, CancellationToken ct = default)
+        // | POST | /fines | Tạo phiếu phạt | Staff/Admin |
+        public async Task<FineResponse> CreateFineAsync(CreateFineRequest request,CancellationToken ct = default)
         {
-            // Kiem tra chi tiet muon ton tai
             var borrowDetail = await _context.BorrowDetails
                 .Include(bd => bd.BorrowRecord)
+                .Include(bd => bd.BookCopy)
                 .FirstOrDefaultAsync(bd => bd.BorrowDetailId == request.BorrowDetailId, ct);
+            if (borrowDetail is null)throw new NotFoundException("Chi tiet phieu muon khong ton tai!");
+            bool fineExists = await _context.Fines.AnyAsync(f => f.BorrowDetailId == request.BorrowDetailId, ct);
+            if (fineExists) throw new BadRequestException( "Chi tiet muon nay da ton tai phieu phat!");
 
-            if (borrowDetail is null)
-                throw new NotFoundException("Chi tiet phieu muon khong ton tai!");
+            switch (request.FineType)
+            {
+                case FineType.OVERDUE:
 
-            // Kiem tra loai vi pham hop le
+                    if (borrowDetail.ReturnedAt is null)
+                    {
+                        throw new BadRequestException("Sach chua duoc tra!");
+                    }
+
+                    if (borrowDetail.ReturnedAt.Value <= borrowDetail.BorrowRecord.DueDate)
+                    {
+                        throw new BadRequestException("Sach khong bi qua han!");
+                    }
+                    break;
+                case FineType.LOST:
+                    if (borrowDetail.BookCopy.Status == BookCopyStatus.LOST)
+                    {
+                        throw new BadRequestException("Ban sao sach da duoc danh dau mat!");
+                    }
+                    borrowDetail.BookCopy.Status = BookCopyStatus.LOST;
+                    break;
+                case FineType.DAMAGED:
+                    borrowDetail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
+                    break;
+                default:
+                    throw new BadRequestException("Loai vi pham khong hop le!");
+            }
+
             var fine = new Fine
             {
                 BorrowDetailId = request.BorrowDetailId,
                 Amount = request.Amount,
                 Reason = request.Reason,
                 FineType = request.FineType,
-                PaymentStatus = PaymentStatus.Pending,
+                PaymentStatus = PaymentStatus.PENDING,
                 CreatedAt = DateTime.UtcNow
             };
-
-            if (request.FineType == FineType.LOST)
-            {
-                await _context.BookCopies
-                    .Where(bc => bc.CopyId == borrowDetail.CopyId)
-                    .ExecuteUpdateAsync(s =>
-                        s.SetProperty(bc => bc.Status, BookCopyStatus.LOST), ct);
-            }
-            else if (request.FineType == FineType.DAMAGED ||
-                     request.FineType == FineType.TORN)
-            {
-                await _context.BookCopies
-                    .Where(bc => bc.CopyId == borrowDetail.CopyId)
-                    .ExecuteUpdateAsync(s =>
-                        s.SetProperty(bc => bc.Status, BookCopyStatus.UNAVAILABLE), ct);
-            }
-
             await _context.Fines.AddAsync(fine, ct);
             await _context.SaveChangesAsync(ct);
-
             return await GetFineByIdAsync(fine.FineId, ct);
         }
-
-        // PATCH /fines/:id/pay — Staff xac nhan thanh toan (UC15)
+        // | PATCH | /fines/:id/pay | Xác nhận đã thanh toán | Staff/Admin |
         public async Task PayFineAsync(int fineId, CancellationToken ct = default)
         {
-            var fine = await _context.Fines.FindAsync(new object[] { fineId }, ct);
-
+            var fine = await _context.Fines.FirstOrDefaultAsync(f => f.FineId == fineId, ct);
             if (fine is null)
                 throw new NotFoundException("Phieu phat khong ton tai!");
-
             if (fine.PaymentStatus == PaymentStatus.PAID)
-                throw new BadRequestException("Phieu phat nay da duoc thanh toan!");
-
+                throw new BadRequestException("Phieu phat da duoc thanh toan!");
             fine.PaymentStatus = PaymentStatus.PAID;
             fine.PaidAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync(ct);
         }
-
-        // Private helper
-        private static FineResponse MapToResponse(Fine f) => new()
-        {
-            FineId = f.FineId,
-            BorrowDetailId = f.BorrowDetailId,
-            BorrowCode = f.BorrowDetail?.BorrowRecord?.BorrowCode ?? string.Empty,
-            ReaderName = f.BorrowDetail?.BorrowRecord?.Reader?.FullName ?? string.Empty,
-            Amount = f.Amount,
-            Reason = f.Reason,
-            FineType = f.FineType.ToString(),
-            PaymentStatus = f.PaymentStatus.ToString(),
-            PaidAt = f.PaidAt,
-            CreatedAt = f.CreatedAt
-        };
     }
 }

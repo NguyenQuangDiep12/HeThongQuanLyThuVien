@@ -1,8 +1,12 @@
 ﻿using HeThongQuanLyThuVien.Data;
+using HeThongQuanLyThuVien.DTOs.Authors;
 using HeThongQuanLyThuVien.DTOs.Books;
+using HeThongQuanLyThuVien.DTOs.Categories;
+using HeThongQuanLyThuVien.DTOs.Publishers;
 using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.Exceptions;
 using HeThongQuanLyThuVien.Models;
+using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,116 +21,272 @@ namespace HeThongQuanLyThuVien.Services
             _context = context;
         }
 
-        public async Task<BookResponse> CreateBookAsync(CreateBookRequest request, CancellationToken ct = default)
+        // POST /books
+        public async Task<BookResponse> CreateBookAsync(CreateBookRequest request,CancellationToken ct = default)
         {
-            bool isCreated = await _context.Books.AnyAsync(b => b.ISBN == request.ISBN, ct);
-            if (isCreated)
-                throw new ConflictException("Sach voi ISBN nay da ton tai!");
+            // Kiem tra ISBN
+            bool isExists = await _context.Books
+                .AnyAsync(b => b.ISBN == request.ISBN, ct);
 
-            bool authorExists = await _context.Authors.AnyAsync(a => a.AuthorId == request.AuthorId, ct);
-            bool categoryExists = await _context.Categories.AnyAsync(c => c.CategoryId == request.CategoryId, ct);
+            if (isExists)
+            {
+                throw new ConflictException(
+                    "Sach voi ISBN nay da ton tai!");
+            }
 
-            if (!authorExists) throw new NotFoundException("Tac gia khong ton tai!");
-            if (!categoryExists) throw new NotFoundException("Danh muc khong ton tai!");
+            // Validate Author
+            bool authorExists = await _context.Authors
+                .AnyAsync(a => a.AuthorId == request.AuthorId, ct);
 
+            if (!authorExists)
+            {
+                throw new NotFoundException(
+                    "Tac gia khong ton tai!");
+            }
+
+            // Validate Category
+            bool categoryExists = await _context.Categories
+                .AnyAsync(c => c.CategoryId == request.CategoryId, ct);
+
+            if (!categoryExists)
+            {
+                throw new NotFoundException(
+                    "Danh muc khong ton tai!");
+            }
+
+            // Validate Publisher
+            bool publisherExists = await _context.Publisher
+                .AnyAsync(p => p.PublisherId == request.PublisherId, ct);
+
+            if (!publisherExists)
+            {
+                throw new NotFoundException(
+                    "Nha xuat ban khong ton tai!");
+            }
+
+            // Tao dau sach
             var book = new Book
             {
-                PublisherId = request.PublisherId,
                 Title = request.Title,
                 ISBN = request.ISBN,
+                PublisherId = request.PublisherId,
                 Language = request.Language,
                 Description = request.Description,
                 CoverImage = request.CoverImage,
-                AvailabilityCopies = 0,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
             };
 
-            book.BookAuthors = new List<BookAuthor> { new() { AuthorId = request.AuthorId } };
-            book.BookCategories = new List<BookCategory> { new() { CategoryId = request.CategoryId } };
+            // Gan tac gia
+            book.BookAuthors = new List<BookAuthor>
+            {
+                new BookAuthor
+                {
+                    AuthorId = request.AuthorId
+                }
+            };
+
+            // Gan danh muc
+            book.BookCategories = new List<BookCategory>
+            {
+                new BookCategory
+                {
+                    CategoryId = request.CategoryId
+                }
+            };
 
             await _context.Books.AddAsync(book, ct);
+
             await _context.SaveChangesAsync(ct);
 
-            return MapToBookResponse(book);
+            return new BookResponse(
+                book.BookId,
+                book.Title,
+                book.ISBN,
+                // TotalCopies
+                0,
+
+                // AvailableCopies
+                0,
+                book.Language ?? string.Empty,
+                book.Description ?? string.Empty,
+                book.CoverImage ?? string.Empty
+            );
         }
 
-        public async Task UpdateBookAsync(int bookId, UpdateBookRequest request, CancellationToken ct = default)
+        // PATCH /books/:id
+        public async Task<BookResponse> UpdateBookAsync(int bookId, UpdateBookRequest request, CancellationToken ct = default)
         {
             var book = await _context.Books
                 .Include(b => b.BookAuthors)
                 .Include(b => b.BookCategories)
-                .FirstOrDefaultAsync(b => b.BookId == bookId, ct);
+                .Include(b => b.BookCopies)
+                .FirstOrDefaultAsync(
+                    b => b.BookId == bookId,
+                    ct);
 
             if (book is null)
-                throw new NotFoundException("Sach khong ton tai!");
-
+            {
+                throw new NotFoundException(
+                    "Sach khong ton tai!");
+            }
+            // Kiem tra ISBN trung
+            bool duplicatedISBN = await _context.Books
+                .AnyAsync(b =>
+                    b.BookId != bookId &&
+                    b.ISBN == request.ISBN,
+                    ct);
+            if (duplicatedISBN)
+            {
+                throw new ConflictException(
+                    "ISBN da duoc su dung!");
+            }
+            // Validate Author
+            bool authorExists = await _context.Authors
+                .AnyAsync(a => a.AuthorId == request.AuthorId, ct);
+            if (!authorExists)
+            {
+                throw new NotFoundException(
+                    "Tac gia khong ton tai!");
+            }
+            // Validate Category
+            bool categoryExists = await _context.Categories
+                .AnyAsync(c => c.CategoryId == request.CategoryId, ct);
+            if (!categoryExists)
+            {
+                throw new NotFoundException(
+                    "Danh muc khong ton tai!");
+            }
+            // Validate Publisher
+            bool publisherExists = await _context.Publisher
+                .AnyAsync(p => p.PublisherId == request.PublisherId, ct);
+            if (!publisherExists)
+            {
+                throw new NotFoundException(
+                    "Nha xuat ban khong ton tai!");
+            }
+            // Update thong tin
             book.Title = request.Title;
             book.ISBN = request.ISBN;
+            book.PublisherId = request.PublisherId;
+            // Neu UpdateBookRequest co cac field nay thi moi gan
+            // khong thi xoa dong duoi di
+            // book.Language = request.Language;
+            // book.Description = request.Description;
+            // book.CoverImage = request.CoverImage;
             book.UpdatedAt = DateTime.UtcNow;
-
+            // Update tac gia
             book.BookAuthors.Clear();
-            book.BookAuthors.Add(new BookAuthor { BookId = bookId, AuthorId = request.AuthorId });
-
+            book.BookAuthors.Add(new BookAuthor
+            {
+                BookId = bookId,
+                AuthorId = request.AuthorId
+            });
+            // Update danh muc
             book.BookCategories.Clear();
-            book.BookCategories.Add(new BookCategory { BookId = bookId, CategoryId = request.CategoryId });
+            book.BookCategories.Add(new BookCategory
+            {
+                BookId = bookId,
+                CategoryId = request.CategoryId
+            });
+            await _context.SaveChangesAsync(ct);
+            return new BookResponse(
+                book.BookId,
+                book.Title,
+                book.ISBN,
+                // TotalCopies
+                book.BookCopies.Count,
+                // AvailableCopies
+                book.BookCopies.Count(bc => bc.Status == BookCopyStatus.AVAILABLE),
+                book.Language ?? string.Empty,
+                book.Description ?? string.Empty,
+                book.CoverImage ?? string.Empty
+            );
+        }
 
+        // DELETE /books/:id
+        public async Task DeleteBookAsync(int bookId, CancellationToken ct = default)
+        {
+            var book = await _context.Books
+                .Include(b => b.BookCopies)
+                .FirstOrDefaultAsync(
+                    b => b.BookId == bookId,
+                    ct);
+            if (book is null)
+            {
+                throw new NotFoundException(
+                    "Sach khong ton tai!");
+            }
+            // Khong cho xoa neu con sach dang muon
+            bool hasBorrowedCopies = book.BookCopies.Any(bc =>
+                bc.Status == BookCopyStatus.BORROWED);
+            if (hasBorrowedCopies)
+            {
+                throw new BadRequestException(
+                    "Khong the xoa sach dang duoc muon!");
+            }
+            _context.Books.Remove(book);
             await _context.SaveChangesAsync(ct);
         }
 
-        public async Task DeleteBookAsync(int bookId, CancellationToken ct = default)
-        {
-            int deletedRows = await _context.Books
-                .Where(b => b.BookId == bookId)
-                .ExecuteDeleteAsync(ct);
-
-            if (deletedRows == 0)
-                throw new NotFoundException("Sach khong ton tai!");
-        }
-
+        // GET /books
         public async Task<PaginationResponse<BookResponse>> GetRangeBooksAsync(BookQueryRequest request, CancellationToken ct = default)
         {
-            int page = request.Page < 1 ? 1 : request.Page;
-            var query = _context.Books.AsNoTracking();
-
+            IQueryable<Book> query = _context.Books.AsNoTracking();
+            // Search keyword
             if (!string.IsNullOrWhiteSpace(request.Keyword))
             {
-                var kw = request.Keyword.Trim();
-                query = query.Where(b => b.Title.Contains(kw) || b.ISBN.Contains(kw));
+                string keyword = request.Keyword.Trim();
+                query = query.Where(b =>
+                    b.Title.Contains(keyword) ||
+                    b.ISBN.Contains(keyword) ||
+                    b.BookAuthors.Any(ba =>
+                        ba.Author.AuthorName.Contains(keyword)));
             }
-
+            // Filter category
             if (request.CategoryId.HasValue)
-                query = query.Where(b => b.BookCategories.Any(bc => bc.CategoryId == request.CategoryId.Value));
-
+            {
+                query = query.Where(b =>
+                    b.BookCategories.Any(bc =>
+                        bc.CategoryId == request.CategoryId.Value));
+            }
+            // Filter author
             if (request.AuthorId.HasValue)
-                query = query.Where(b => b.BookAuthors.Any(ba => ba.AuthorId == request.AuthorId.Value));
-
-            int total = await query.CountAsync(ct);
-
+            {
+                query = query.Where(b =>
+                    b.BookAuthors.Any(ba =>
+                        ba.AuthorId == request.AuthorId.Value));
+            }
+            int totalRecords = await query.CountAsync(ct);
             var items = await query
-                .OrderBy(b => b.BookId)
-                .Skip((page - 1) * request.PageSize)
+                .OrderByDescending(b => b.CreatedAt)
+                .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(b => new BookResponse(
                     b.BookId,
                     b.Title,
                     b.ISBN,
-                    b.BookCopies.Count,
-                    b.AvailabilityCopies,
-                    b.Language,
+
+                    // TotalCopies
+                    b.BookCopies.Count(),
+
+                    // AvailableCopies
+                    b.BookCopies.Count(bc =>
+                        bc.Status == BookCopyStatus.AVAILABLE),
+
+                    b.Language ?? string.Empty,
                     b.Description ?? string.Empty,
                     b.CoverImage ?? string.Empty
                 ))
                 .ToListAsync(ct);
-
             return new PaginationResponse<BookResponse>
             {
                 Items = items,
-                Page = page,
+                Page = request.Page,
                 PageSize = request.PageSize,
-                TotalRecords = total
+                TotalRecords = totalRecords
             };
         }
-
+        // GET /books/:id
         public async Task<BookDetailResponse> GetBookByIdAsync(int bookId, CancellationToken ct = default)
         {
             var book = await _context.Books
@@ -136,34 +296,44 @@ namespace HeThongQuanLyThuVien.Services
                     b.BookId,
                     b.Title,
                     b.ISBN,
-                    b.Language,
+                    b.Language ?? string.Empty,
                     b.Description ?? string.Empty,
-                    b.BookCopies.Count,
-                    b.AvailabilityCopies,
+                    // Tong so ban sao
+                    b.BookCopies.Count(),
+                    // So ban sao available
+                    b.BookCopies.Count(bc =>
+                        bc.Status == BookCopyStatus.AVAILABLE),
                     b.CoverImage ?? string.Empty,
                     b.CreatedAt,
-                    b.UpdatedAt
-                ))
-                .FirstOrDefaultAsync(ct);
-
+                    b.UpdatedAt,
+                    // Publisher
+                    new PublisherResponse(
+                        b.Publisher.PublisherId,
+                        b.Publisher.PublisherName,
+                        b.Publisher.LogoUrl
+                    ),
+                    // Authors
+                    b.BookAuthors
+                        .Select(ba => new AuthorResponse(
+                            ba.Author.AuthorId,
+                            ba.Author.AuthorName,
+                            ba.Author.Biography,
+                            ba.Author.AuthorUrl
+                        )).ToList(),
+                    // Categories
+                    b.BookCategories
+                        .Select(bc => new CategoryResponse(
+                            bc.Category.CategoryId,
+                            bc.Category.CategoryName,
+                            bc.Category.Description
+                        )).ToList()
+                )).FirstOrDefaultAsync(ct);
             if (book is null)
-                throw new NotFoundException("Sach khong ton tai!");
-
+            {
+                throw new NotFoundException(
+                    "Sach khong ton tai!");
+            }
             return book;
         }
-
-        // Private helpers
-
-        private static BookResponse MapToBookResponse(Book book) =>
-            new(
-                book.BookId,
-                book.Title,
-                book.ISBN,
-                book.BookCopies.Count,
-                book.AvailabilityCopies,
-                book.Language,
-                book.Description ?? string.Empty,
-                book.CoverImage ?? string.Empty
-            );
     }
 }

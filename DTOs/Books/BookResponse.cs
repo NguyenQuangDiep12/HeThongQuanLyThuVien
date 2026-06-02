@@ -2,13 +2,19 @@
 {
     // GET /books
     public record BookResponse(
-        int BookId, 
-        string Title, 
-        string ISBN, 
-        int Quantity, 
-        int AvailableQuantity, 
-        string Language, 
-        string Description,  
-        string CoverImage);
+        int BookId,
+        string Title,
+        string ISBN,
+
+        // Tong so ban sao
+        int TotalCopies,
+
+        // So ban sao co the muon
+        int AvailableCopies,
+
+        string Language,
+        string Description,
+        string CoverImage
+    );
 }
  

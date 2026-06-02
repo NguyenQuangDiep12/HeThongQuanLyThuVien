@@ -156,6 +156,7 @@
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | GET | /notifications | Danh sách thông báo | Owner |
+| GET | /notifications/:id | xem chi tiết thông báo | Owner | 
 | PATCH | /notifications/read-all | Đánh dấu tất cả thông báo là đã đọc | Owner |
 </details>
 ---

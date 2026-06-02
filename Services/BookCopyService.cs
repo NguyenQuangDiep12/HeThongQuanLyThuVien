@@ -7,6 +7,7 @@ using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.InteropServices;
+using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Services
 {
@@ -59,7 +60,6 @@ namespace HeThongQuanLyThuVien.Services
                     ShelfLocation = bc.ShelfLocation,
                     Condition = bc.Condition.ToString(),
                     Status = bc.Status.ToString(),
-                    IsReferenceOnly = bc.IsReferenceOnly,
                     CreatedAt = bc.CreatedAt,
                 }).ToListAsync(ct);
 
@@ -108,24 +108,110 @@ namespace HeThongQuanLyThuVien.Services
             return Data;
         }
 
-        public Task<BookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
+        public async Task<BookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
         {
-            
+            // Kiểm tra đầu sách tồn tại
+            bool bookExists = await _context.Books
+                .AnyAsync(b => b.BookId == bookId, ct);
+
+            if (!bookExists)
+                throw new NotFoundException("Đầu sách không tồn tại!");
+
+            // Kiểm tra barcode trùng
+            bool barcodeExists = await _context.BookCopies
+                .AnyAsync(bc => bc.Barcode == request.Barcode, ct);
+
+            if (barcodeExists)
+                throw new ConflictException("Barcode đã tồn tại!");
+
+            // Tạo bản sao sách
+            var copy = new BookCopy
+            {
+                BookId = bookId,
+                Barcode = request.Barcode,
+                ShelfLocation = request.ShelfLocation,
+                Status = BookCopyStatus.AVAILABLE,
+                Condition = BookCondition.NORMAL,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.BookCopies.AddAsync(copy, ct);
+            await _context.SaveChangesAsync(ct);
+
+            // Load tên sách
+            string bookTitle = await _context.Books
+                .Where(b => b.BookId == bookId)
+                .Select(b => b.Title)
+                .FirstAsync(ct);
+
+            return new BookCopyResponse
+            {
+                CopyId = copy.CopyId,
+                BookId = copy.BookId,
+                Barcode = copy.Barcode,
+                ShelfLocation = copy.ShelfLocation ?? string.Empty,
+                Status = copy.Status.ToString(),
+                Condition = copy.Condition.ToString(),
+                CreatedAt = copy.CreatedAt,
+                BookTitle = bookTitle
+            };
         }
 
-        public Task UpdateBookCopyAsync(int copyId, UpdateBookCopyRequest request, CancellationToken ct = default)
+        public async Task UpdateBookCopyAsync(int copyId, UpdateBookCopyRequest request, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            var copy = await _context.BookCopies
+                .FirstOrDefaultAsync(bc => bc.CopyId == copyId, ct);
+
+            if (copy is null)
+                throw new NotFoundException("Bản sao sách không tồn tại!");
+
+            if (request.ShelfLocation is not null)
+                copy.ShelfLocation = request.ShelfLocation;
+
+            if (request.Condition.HasValue)
+                copy.Condition = request.Condition.Value;
+
+            await _context.SaveChangesAsync(ct);
         }
 
-        public Task ChangeBookCopyStatusAsync(int copyId, UpdateBookCopyStatusRequest request, CancellationToken ct = default)
+        public async Task ChangeBookCopyStatusAsync(int copyId, UpdateBookCopyStatusRequest request, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            int rows = await _context.BookCopies
+                .Where(bc => bc.CopyId == copyId)
+                .ExecuteUpdateAsync(s =>
+                    s.SetProperty(bc => bc.Status, request.Status),
+                    ct);
+
+            if (rows == 0)
+                throw new NotFoundException("Bản sao sách không tồn tại!");
         }
 
-        public Task DeleteBookCopyAsync(int copyId, CancellationToken ct = default)
+        public async Task DeleteBookCopyAsync(int copyId, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            // Kiểm tra quyền Admin
+            var role = _contextAccessor.HttpContext?
+                .User
+                .FindFirst(ClaimTypes.Role)?
+                .Value;
+
+            if (role != "ADMIN")
+                throw new ForbiddenException(
+                    "Chỉ Admin mới có quyền xóa bản sao sách!");
+
+            var copy = await _context.BookCopies
+                .FirstOrDefaultAsync(bc => bc.CopyId == copyId, ct);
+
+            if (copy is null)
+                throw new NotFoundException("Bản sao sách không tồn tại!");
+
+            // Không cho xóa nếu đang được mượn
+            if (copy.Status == BookCopyStatus.BORROWED)
+                throw new BadRequestException(
+                    "Không thể xóa bản sao đang được mượn!");
+
+            _context.BookCopies.Remove(copy);
+
+            await _context.SaveChangesAsync(ct);
         }
     }
 }

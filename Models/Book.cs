@@ -9,7 +9,6 @@
         public string Language { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? CoverImage { get; set; }
-        public int AvailabilityCopies { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 

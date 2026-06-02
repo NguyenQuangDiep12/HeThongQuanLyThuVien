@@ -4,7 +4,6 @@
     { 
         OVERDUE, 
         LOST, 
-        DAMAGED,
-        TORN
+        DAMAGED
     }
 }

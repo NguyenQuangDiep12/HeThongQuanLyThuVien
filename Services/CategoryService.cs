@@ -38,8 +38,6 @@ namespace HeThongQuanLyThuVien.Services
                 category.Description ?? string.Empty
             );
         }
-
-
         public async Task UpdateCategoryAsync(int id, UpdateCategoryRequest request, CancellationToken ct = default)
         {
             int rows = await _context.Categories
@@ -51,7 +49,6 @@ namespace HeThongQuanLyThuVien.Services
             if (rows == 0)
                 throw new NotFoundException("Danh muc khong ton tai!");
         }
-
         public async Task DeleteCategoryAsync(int id, CancellationToken ct = default)
         {
             var roleUser = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
@@ -68,7 +65,6 @@ namespace HeThongQuanLyThuVien.Services
             if (rows == 0)
                 throw new NotFoundException("Danh muc khong ton tai!");
         }
-
         public async Task<List<CategoryResponse>> GetListCategoriesAsync(CancellationToken ct = default)
         {
             return await _context.Categories
@@ -81,7 +77,6 @@ namespace HeThongQuanLyThuVien.Services
                 ))
                 .ToListAsync(ct);
         }
-
         public async Task<CategoryResponse> AddCategoryAsync(CreateCategoryRequest request, CancellationToken ct = default)
         {
             var category = new Category

@@ -23,13 +23,9 @@ namespace HeThongQuanLyThuVien.Services
 
         public async Task<PublisherResponse> GetPublisherByIdAsync(int id, CancellationToken ct = default)
         {
-            var publisher = await _context.Publisher
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.PublisherId == id, ct);
-
+            var publisher = await _context.Publisher.AsNoTracking().FirstOrDefaultAsync(p => p.PublisherId == id, ct);
             if (publisher is null)
                 throw new NotFoundException("Nha xuat ban khong ton tai!");
-
             return new PublisherResponse
             (
                 publisher.PublisherId,
@@ -45,7 +41,6 @@ namespace HeThongQuanLyThuVien.Services
                 .ExecuteUpdateAsync(s =>
                     s.SetProperty(p => p.PublisherName, request.PublisherName)
                      .SetProperty(p => p.LogoUrl, request.LogoUrl), ct);
-
             if (rows == 0)
                 throw new NotFoundException("Nha xuat ban khong ton tai!");
         }
@@ -57,31 +52,26 @@ namespace HeThongQuanLyThuVien.Services
             {
                 throw new UnauthorizedException("Nguoi dung khong co quyen thuc hien chuc nang nay!");
             }
-
             // Kiem tra con sach lien ket khong
             bool hasBooks = await _context.Books.AnyAsync(b => b.PublisherId == id, ct);
             if (hasBooks)
                 throw new BadRequestException("Khong the xoa nha xuat ban dang co sach lien ket!");
-
             int rows = await _context.Publisher
                 .Where(p => p.PublisherId == id)
                 .ExecuteDeleteAsync(ct);
-
             if (rows == 0)
                 throw new NotFoundException("Nha xuat ban khong ton tai!");
         }
 
         public async Task<List<PublisherResponse>> GetListPublishersAsync(CancellationToken ct = default)
         {
-            return await _context.Publisher
-               .AsNoTracking()
+            return await _context.Publisher.AsNoTracking()
                .Select(p => new PublisherResponse
                (
                    p.PublisherId,
                    p.PublisherName,
                    p.LogoUrl
-               ))
-               .ToListAsync(ct);
+               )).ToListAsync(ct);
         }
 
         public async Task<PublisherResponse> AddPublisherAsync(CreatePublisherRequest request, CancellationToken ct = default)
@@ -91,10 +81,8 @@ namespace HeThongQuanLyThuVien.Services
                 PublisherName = request.PublisherName,
                 LogoUrl = request.LogoUrl
             };
-
             await _context.Publisher.AddAsync(publisher, ct);
             await _context.SaveChangesAsync(ct);
-
             return new PublisherResponse
             (
                 publisher.PublisherId,
