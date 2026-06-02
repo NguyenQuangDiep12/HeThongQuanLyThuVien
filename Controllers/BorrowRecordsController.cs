@@ -1,5 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using HeThongQuanLyThuVien.DTOs.BorrowRecords;
+using HeThongQuanLyThuVien.DTOs.Shared;
+using HeThongQuanLyThuVien.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Controllers
 {
@@ -7,53 +11,129 @@ namespace HeThongQuanLyThuVien.Controllers
     [Route("api/borrow-records")]
     public class BorrowRecordsController : ControllerBase
     {
+        private readonly IBorrowRecordService _borrowRecordService;
+
+        public BorrowRecordsController(IBorrowRecordService borrowRecordService)
+        {
+            _borrowRecordService = borrowRecordService;
+        }
+
+        // GET /api/borrow-records  (Staff/Admin)
         [HttpGet]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> GetListBorrowRecords()
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> GetListBorrowRecords([FromQuery] BorrowRecordQueryRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _borrowRecordService.GetBorrowRecordsAsync(request, ct);
+            return Ok(new ApiResponse<PaginationResponse<BorrowRecordSummaryResponse>>
+            {
+                Success = true,
+                Data = result,
+                Message = "Lay danh sach phieu muon thanh cong"
+            });
         }
-        [HttpGet("/api/users/{id}/borrow-records")]
+
+        // GET /api/users/:id/borrow-records  (Owner/Staff/Admin)
+        // Route dat o day vi dung prefix /api/users/:id
+        [HttpGet("/api/users/{id:int}/borrow-records")]
         [Authorize(Roles = "READER,STAFF,ADMIN")]
-        public async Task<IActionResult> GetUserBorrowRecords(int id)
+        public async Task<IActionResult> GetUserBorrowRecords([FromRoute] int id, [FromQuery] PaginationRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _borrowRecordService.GetUserBorrowRecordsAsync(id, request, ct);
+            return Ok(new ApiResponse<PaginationResponse<BorrowRecordSummaryResponse>>
+            {
+                Success = true,
+                Data = result,
+                Message = "Lay lich su muon sach thanh cong"
+            });
         }
-        [HttpGet("{id}")]
-        [Authorize("READER,STAFF,ADMIN")]
-        public async Task<IActionResult> GetDetailBorrowRecord()
+
+        // GET /api/borrow-records/:id  (Owner/Staff/Admin)
+        [HttpGet("{id:int}")]
+        [Authorize(Roles = "READER,STAFF,ADMIN")]
+        public async Task<IActionResult> GetDetailBorrowRecord([FromRoute] int id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _borrowRecordService.GetBorrowRecordByIdAsync(id, ct);
+            return Ok(new ApiResponse<BorrowRecordDetailResponse>
+            {
+                Success = true,
+                Data = result,
+                Message = "Lay chi tiet phieu muon thanh cong"
+            });
         }
-        [HttpPost("{id}/extension-requests")]
-        [Authorize("READER")]
-        public async Task<IActionResult> SubmitBookRenewal()
-        {
-            throw new NotImplementedException();
-        }
+
+        // POST /api/borrow-records  (Staff/Admin tao phieu muon)
         [HttpPost]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> CreateBorrowRecord()
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> CreateBorrowRecord([FromBody] CreateBorrowRecordRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            int staffId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var result = await _borrowRecordService.CreateBorrowRecordAsync(staffId, request, ct);
+            return Ok(new ApiResponse<BorrowRecordDetailResponse>
+            {
+                Success = true,
+                Data = result,
+                Message = "Tao phieu muon thanh cong"
+            });
         }
-        [HttpPatch("{id}/return")]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> ConfirmBookReturned()
+
+        // POST /api/borrow-records/:id/extension-requests  (Reader gui yeu cau gia han)
+        [HttpPost("{id:int}/extension-requests")]
+        [Authorize(Roles = "READER")]
+        public async Task<IActionResult> SubmitBookRenewal([FromRoute] int id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            int readerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            await _borrowRecordService.SubmitExtensionRequestAsync(id, readerId, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Gui yeu cau gia han thanh cong"
+            });
         }
-        [HttpPatch("{id}/cancel")]
-        [Authorize("READER,STAFF,ADMIN")]
-        public async Task<IActionResult> CancelLoanPasses()
+
+        // PATCH /api/borrow-records/:id/return  (Staff/Admin xac nhan tra sach)
+        [HttpPatch("{id:int}/return")]
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> ConfirmBookReturned([FromRoute] int id, [FromBody] ConfirmReturnRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            await _borrowRecordService.ConfirmReturnAsync(id, request, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Xac nhan tra sach thanh cong"
+            });
         }
-        [HttpPatch("{id}/extend")]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> ConfirmBookRenewal()
+
+        // PATCH /api/borrow-records/:id/cancel  (Owner/Staff/Admin huy phieu muon)
+        [HttpPatch("{id:int}/cancel")]
+        [Authorize(Roles = "READER,STAFF,ADMIN")]
+        public async Task<IActionResult> CancelLoanPass([FromRoute] int id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            int currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            string currentRole = User.FindFirst(ClaimTypes.Role)!.Value;
+            await _borrowRecordService.CancelBorrowRecordAsync(id, currentUserId, currentRole, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Huy phieu muon thanh cong"
+            });
+        }
+
+        // PATCH /api/borrow-records/:id/extend  (Staff/Admin xac nhan gia han)
+        [HttpPatch("{id:int}/extend")]
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> ConfirmBookRenewal([FromRoute] int id, CancellationToken ct)
+        {
+            int staffId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            await _borrowRecordService.ConfirmExtensionAsync(id, staffId, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Gia han sach thanh cong"
+            });
         }
     }
 }

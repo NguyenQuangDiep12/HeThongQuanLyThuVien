@@ -3,6 +3,7 @@ using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Controllers
 {
@@ -41,16 +42,16 @@ namespace HeThongQuanLyThuVien.Controllers
             {
                 Success = true,
                 Data = response,
-                Message = "Danh nhap thanh cong"
+                Message = "Dang nhap thanh cong"
             });
         }
 
+        // POST /api/auth/forgot-password
         [HttpPost("forgot-password")]
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
         {
             await _authService.ForgotPasswordAsync(request, ct);
-
             return Ok(new ApiResponse<object>
             {
                 Success = true,
@@ -59,8 +60,9 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        [Authorize(Roles = "READER,STAFF,ADMIN")]
+        // PUT /api/auth/reset-password  (Owner)
         [HttpPut("reset-password")]
+        [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
         {
             await _authService.ResetPasswordAsync(request, ct);

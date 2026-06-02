@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using HeThongQuanLyThuVien.DTOs.Publishers;
+using HeThongQuanLyThuVien.DTOs.Shared;
+using HeThongQuanLyThuVien.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyThuVien.Controllers
@@ -7,35 +10,81 @@ namespace HeThongQuanLyThuVien.Controllers
     [Route("api/publishers")]
     public class PublishersController : ControllerBase
     {
+        private readonly IPublisherService _publisherService;
+
+        public PublishersController(IPublisherService publisherService)
+        {
+            _publisherService = publisherService;
+        }
+
+        // GET /api/publishers  (Public)
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetListPublishers()
+        public async Task<IActionResult> GetListPublishers(CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _publisherService.GetListPublishersAsync(ct);
+            return Ok(new ApiResponse<List<PublisherResponse>>
+            {
+                Success = true,
+                Data = result,
+                Message = "Lay danh sach nha xuat ban thanh cong"
+            });
         }
-        [HttpGet("{id}")]
+
+        // GET /api/publishers/:id  (Public)
+        [HttpGet("{id:int}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetPublisherDetail()
+        public async Task<IActionResult> GetPublisherDetail([FromRoute] int id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _publisherService.GetPublisherByIdAsync(id, ct);
+            return Ok(new ApiResponse<PublisherResponse>
+            {
+                Success = true,
+                Data = result,
+                Message = "Lay chi tiet nha xuat ban thanh cong"
+            });
         }
+
+        // POST /api/publishers  (Staff/Admin)
         [HttpPost]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> AddPublishers()
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> AddPublisher([FromBody] CreatePublisherRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _publisherService.AddPublisherAsync(request, ct);
+            return Ok(new ApiResponse<PublisherResponse>
+            {
+                Success = true,
+                Data = result,
+                Message = "Them nha xuat ban thanh cong"
+            });
         }
-        [HttpPut("{id}")]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> UpdatePublishers()
+
+        // PUT /api/publishers/:id  (Staff/Admin)
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> UpdatePublisher([FromRoute] int id, [FromBody] UpdatePublisherRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            await _publisherService.UpdatePublisherAsync(id, request, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Cap nhat nha xuat ban thanh cong"
+            });
         }
-        [HttpDelete("{id}")]
-        [Authorize("ADMIN")]
-        public async Task<IActionResult> DeletePublishers()
+
+        // DELETE /api/publishers/:id  (Admin)
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "ADMIN")]
+        public async Task<IActionResult> DeletePublisher([FromRoute] int id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            await _publisherService.DeletePublisherAsync(id, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Xoa nha xuat ban thanh cong"
+            });
         }
     }
 }

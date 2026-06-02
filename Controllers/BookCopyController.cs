@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using HeThongQuanLyThuVien.DTOs.BookCopies;
+using HeThongQuanLyThuVien.DTOs.Shared;
+using HeThongQuanLyThuVien.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HeThongQuanLyThuVien.Controllers
@@ -7,41 +10,95 @@ namespace HeThongQuanLyThuVien.Controllers
     [Route("api/book-copies")]
     public class BookCopyController : ControllerBase
     {
+        private readonly IBookCopyService _bookCopyService;
+
+        public BookCopyController(IBookCopyService bookCopyService)
+        {
+            _bookCopyService = bookCopyService;
+        }
+
+        // GET /api/book-copies  (Staff/Admin)
         [HttpGet]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> GetBookCopies()
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> GetBookCopies([FromQuery] GetBookCopiesRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _bookCopyService.GetBookCopiesAsync(request, ct);
+            return Ok(new ApiResponse<PaginationResponse<BookCopyResponse>>
+            {
+                Success = true,
+                Data = result,
+                Message = "Lay danh sach ban sao sach thanh cong"
+            });
         }
-        [HttpGet("{id}")]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> GetBookCopyDetail()
+
+        // GET /api/book-copies/:id  (Staff/Admin)
+        [HttpGet("{id:int}")]
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> GetBookCopyDetail([FromRoute] int id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _bookCopyService.GetBookCopyByIdAsync(id, ct);
+            return Ok(new ApiResponse<BookCopyDetailResponse>
+            {
+                Success = true,
+                Data = result,
+                Message = "Lay chi tiet ban sao sach thanh cong"
+            });
         }
-        [HttpPost("book/{id}")]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> AddBookCopyDetail()
+
+        // POST /api/book-copies/book/:id  (Staff/Admin - them ban sao cho dau sach)
+        [HttpPost("book/{id:int}")]
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> AddBookCopy([FromRoute] int id, [FromBody] CreateBookCopyRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _bookCopyService.CreateBookCopyAsync(id, request, ct);
+            return Ok(new ApiResponse<BookCopyResponse>
+            {
+                Success = true,
+                Data = result,
+                Message = "Them ban sao sach thanh cong"
+            });
         }
-        [HttpPut("{id}")]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> UpdateCopyBookStatus()
+
+        // PUT /api/book-copies/:id  (Staff/Admin - cap nhat toan bo thong tin ban sao)
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> UpdateBookCopy([FromRoute] int id, [FromBody] UpdateBookCopyRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            await _bookCopyService.UpdateBookCopyAsync(id, request, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Cap nhat ban sao sach thanh cong"
+            });
         }
-        [HttpPatch("{id}/status")]
-        [Authorize("STAFF,ADMIN")]
-        public async Task<IActionResult> ChangeCopyBookStatus()
+
+        // PATCH /api/book-copies/:id/status  (Staff/Admin - doi trang thai ban sao)
+        [HttpPatch("{id:int}/status")]
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> ChangeBookCopyStatus([FromRoute] int id, [FromBody] UpdateBookCopyStatusRequest request, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            await _bookCopyService.ChangeBookCopyStatusAsync(id, request, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Cap nhat trang thai ban sao sach thanh cong"
+            });
         }
-        [HttpDelete("{id}")]
-        [Authorize("ADMIN")]
-        public async Task<IActionResult> DeleteBookCopy()
+
+        // DELETE /api/book-copies/:id  (Admin)
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "ADMIN")]
+        public async Task<IActionResult> DeleteBookCopy([FromRoute] int id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            await _bookCopyService.DeleteBookCopyAsync(id, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Xoa ban sao sach thanh cong"
+            });
         }
     }
 }
