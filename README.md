@@ -242,7 +242,6 @@ Status: Active, Expired, Blocked
 | Language | varchar(50) | Ngon ngu sach |
 | Description | nvarchar(max) | Mo ta sach |
 | CoverImage | varchar(500) | Anh bia sach |
-| AvailabilityCopies | int | So luong ban sao co san |
 | CreatedAt | datetime | Ngay tao |
 | UpdatedAt | datetime | Ngay cap nhat |
 
@@ -261,7 +260,6 @@ Status: Active, Expired, Blocked
 | ShelfLocation | varchar(100) | Vi tri ke sach |
 | Status | varchar(30) | Trang thai sach |
 | Condition | varchar(30) | Tinh trang vat ly cua sach |
-| IsReferenceOnly | bit | Chi duoc doc tai cho |
 | CreatedAt | datetime | Ngay tao ban sao |
 
 Status: Available, Borrowed, Reserved, Lost, Damaged

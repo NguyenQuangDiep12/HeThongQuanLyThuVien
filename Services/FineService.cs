@@ -121,51 +121,56 @@ namespace HeThongQuanLyThuVien.Services
                 TotalRecords = total
             };
         }
-
         // | POST | /fines | Tạo phiếu phạt | Staff/Admin |
-        public async Task<FineResponse> CreateFineAsync(CreateFineRequest request,CancellationToken ct = default)
+        public async Task<FineResponse> CreateFineAsync(CreateFineRequest request, CancellationToken ct = default)
         {
             var borrowDetail = await _context.BorrowDetails
                 .Include(bd => bd.BorrowRecord)
                 .Include(bd => bd.BookCopy)
                 .FirstOrDefaultAsync(bd => bd.BorrowDetailId == request.BorrowDetailId, ct);
-            if (borrowDetail is null)throw new NotFoundException("Chi tiet phieu muon khong ton tai!");
-            bool fineExists = await _context.Fines.AnyAsync(f => f.BorrowDetailId == request.BorrowDetailId, ct);
-            if (fineExists) throw new BadRequestException( "Chi tiet muon nay da ton tai phieu phat!");
-
+            if (borrowDetail is null) 
+                throw new NotFoundException("Chi tiet phieu muon khong ton tai!");
+            bool fineExists = await _context.Fines.AnyAsync(f =>f.BorrowDetailId == request.BorrowDetailId && f.FineType == request.FineType, ct);
+            if (fineExists)
+            {
+                throw new BadRequestException( "Loai phieu phat nay da ton tai!");
+            }
             switch (request.FineType)
             {
                 case FineType.OVERDUE:
-
                     if (borrowDetail.ReturnedAt is null)
                     {
                         throw new BadRequestException("Sach chua duoc tra!");
                     }
-
-                    if (borrowDetail.ReturnedAt.Value <= borrowDetail.BorrowRecord.DueDate)
+                    if (borrowDetail.ReturnedAt.Value <=
+                        borrowDetail.BorrowRecord.DueDate)
                     {
-                        throw new BadRequestException("Sach khong bi qua han!");
+                        throw new BadRequestException(
+                            "Sach khong bi qua han!");
                     }
                     break;
                 case FineType.LOST:
-                    if (borrowDetail.BookCopy.Status == BookCopyStatus.LOST)
+                    if (borrowDetail.BookCopy.Status ==
+                        BookCopyStatus.LOST)
                     {
-                        throw new BadRequestException("Ban sao sach da duoc danh dau mat!");
+                        throw new BadRequestException(
+                            "Ban sao sach da duoc danh dau mat!");
                     }
-                    borrowDetail.BookCopy.Status = BookCopyStatus.LOST;
+                    borrowDetail.BookCopy.Status =
+                        BookCopyStatus.LOST;
                     break;
                 case FineType.DAMAGED:
-                    borrowDetail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
+                    borrowDetail.BookCopy.Status =
+                        BookCopyStatus.UNAVAILABLE;
                     break;
                 default:
                     throw new BadRequestException("Loai vi pham khong hop le!");
             }
-
             var fine = new Fine
             {
                 BorrowDetailId = request.BorrowDetailId,
                 Amount = request.Amount,
-                Reason = request.Reason,
+                Reason = request.Reason?.Trim()?? string.Empty,
                 FineType = request.FineType,
                 PaymentStatus = PaymentStatus.PENDING,
                 CreatedAt = DateTime.UtcNow

@@ -63,11 +63,11 @@ namespace HeThongQuanLyThuVien.Services
         {
             return await _context.BorrowDetails
                 .AsNoTracking()
-                .GroupBy(bd => bd.BookCopy.BookId)
+                .GroupBy(bd => new { bd.BookCopy.BookId, bd.BookCopy.Book.Title })
                 .Select(g => new TopBookResponse
                 {
-                    BookId = g.Key,
-                    Title = g.First().BookCopy.Book.Title,
+                    BookId = g.Key.BookId,
+                    Title = g.Key.Title,
                     BorrowCount = g.Count()
                 })
                 .OrderByDescending(x => x.BorrowCount)
