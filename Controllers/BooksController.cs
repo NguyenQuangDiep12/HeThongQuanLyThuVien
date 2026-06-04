@@ -17,7 +17,7 @@ namespace HeThongQuanLyThuVien.Controllers
             _bookService = bookService;
         }
 
-        // GET /api/books  (Public)
+        // GET /api/books  (Public) | GET | /books | Tìm kiếm sách | Public |
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetBooks([FromQuery] BookQueryRequest request, CancellationToken ct)
@@ -31,7 +31,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // GET /api/books/:id  (Public)
+        // GET /api/books/:id  (Public) | GET | /books/:id | Chi tiết sách | Public |
         [HttpGet("{id:int}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetBookDetail([FromRoute] int id, CancellationToken ct)
@@ -45,7 +45,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // POST /api/books  (Staff/Admin)
+        // POST /api/books  (Staff/Admin) | POST | /book | Thêm sách mới | Staff/Admin |
         [HttpPost]
         [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> AddBook([FromBody] CreateBookRequest request, CancellationToken ct)
@@ -58,8 +58,8 @@ namespace HeThongQuanLyThuVien.Controllers
                 Message = "Them sach moi thanh cong"
             });
         }
-
-        // PUT /api/books/:id  (Staff/Admin)
+            
+        // PUT /api/books/:id  (Staff/Admin) | PUT | /books/:id | Cập nhật thông tin sách | Staff/Admin |
         [HttpPut("{id:int}")]
         [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> UpdateBook([FromRoute] int id, [FromBody] UpdateBookRequest request, CancellationToken ct)
@@ -73,7 +73,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // DELETE /api/books/:id  (Admin)
+        // DELETE /api/books/:id  (Admin) | DELETE | /books/:id | Xóa đầu sách | Admin |
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> DeleteBook([FromRoute] int id, CancellationToken ct)

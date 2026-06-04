@@ -1,10 +1,11 @@
-﻿namespace HeThongQuanLyThuVien.DTOs.BookCopies
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace HeThongQuanLyThuVien.DTOs.BookCopies
 {
     // CreateBookCopyRequest:
-    public class CreateBookCopyRequest
-    {
-        public string Barcode { get; set; } = string.Empty;
-        public string? ShelfLocation { get; set; }
-        public bool IsReferenceOnly { get; set; } = false;
+    public class CreateBookCopyRequest { 
+        [Required(ErrorMessage = "Barcode không được để trống")] 
+        public string Barcode { get; set; } = string.Empty; 
+        public string? ShelfLocation { get; set; } 
     }
 }

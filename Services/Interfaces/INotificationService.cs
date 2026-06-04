@@ -4,20 +4,22 @@ using HeThongQuanLyThuVien.DTOs.Shared;
 namespace HeThongQuanLyThuVien.Services.Interfaces
 {
     /// <summary>
-    /// UC24 - Quản lý thông báo (Reader)
-    ///   Loại thông báo: Quá hạn sách, Gia hạn thành công, Trả sách thành công
+    /// UC24 - Quan ly thong bao (Reader)
+    ///   Loai thong bao: Qua han sach, Gia han thanh cong, Tra sach thanh cong
     /// </summary>
     public interface INotificationService
     {
-        // GET /notifications — lấy danh sách thông báo của Reader hiện tại
+        // GET /notifications — lay danh sach thong bao cua Reader hien tai
         Task<PaginationResponse<NotificationResponse>> GetNotificationsAsync(int currentUserId, PaginationRequest request, CancellationToken ct = default);
-        // GET /notifications/:id - lấy chi tiết thông báo của reader
+        // GET /notifications/:id — lay chi tiet thong bao
         Task<NotificationResponse> GetNotificationByIdAsync(int notificationId, int currentUserId, CancellationToken ct = default);
-        // PATCH /notifications/read-all — đánh dấu tất cả là đã đọc
+        // PATCH /notifications/:id/read — danh dau 1 thong bao da doc
         Task MarkAsReadAsync(int notificationId, int currentUserId, CancellationToken ct = default);
-        // Internal gui thong bao cho nguoi dung cu the
+        // PATCH /notifications/read-all — danh dau tat ca la da doc
+        Task MarkAllAsReadAsync(int currentUserId, CancellationToken ct = default);
+        // Internal: gui thong bao cho nguoi dung cu the
         Task SendAsync(int userId, string title, string content, CancellationToken ct = default);
-        // Internal gui thong bao den tat ca staff
+        // Internal: gui thong bao den tat ca staff
         Task SendToStaffAsync(string title, string content, CancellationToken ct = default);
     }
 }

@@ -10,7 +10,6 @@ namespace HeThongQuanLyThuVien.Models
         public string? ShelfLocation { get; set; }
         public BookCopyStatus Status { get; set; } = BookCopyStatus.AVAILABLE;
         public BookCondition Condition { get; set; } = BookCondition.NORMAL;
-        public bool IsReferenceOnly { get; set; }
         public DateTime CreatedAt { get; set; }
         // Navigation
         public Book Book { get; set; } = null!;

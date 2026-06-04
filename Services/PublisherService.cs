@@ -34,7 +34,7 @@ namespace HeThongQuanLyThuVien.Services
             );
         }
 
-        public async Task UpdatePublisherAsync(int id, UpdatePublisherRequest request, CancellationToken ct = default)
+        public async Task UpdatePublisherAsync(int id, PublisherRequest request, CancellationToken ct = default)
         {
             int rows = await _context.Publisher
                 .Where(p => p.PublisherId == id)
@@ -74,7 +74,7 @@ namespace HeThongQuanLyThuVien.Services
                )).ToListAsync(ct);
         }
 
-        public async Task<PublisherResponse> AddPublisherAsync(CreatePublisherRequest request, CancellationToken ct = default)
+        public async Task<PublisherResponse> AddPublisherAsync(PublisherRequest request, CancellationToken ct = default)
         {
             var publisher = new Publisher
             {

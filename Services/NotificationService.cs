@@ -88,59 +88,33 @@ namespace HeThongQuanLyThuVien.Services
                         DateTime.UtcNow), ct);
         }
 
-        public async Task SendAsync(
-            int userId,
-            string title,
-            string content,
-            CancellationToken ct = default)
+        public async Task SendAsync(int userId, string title, string content, CancellationToken ct = default)
         {
             var notification = new Notification
             {
                 UserId = userId,
-
                 Title = title,
-
                 Content = content,
-
                 IsRead = false,
-
                 CreatedAt = DateTime.UtcNow
             };
-
-            await _context.Notifications
-                .AddAsync(notification, ct);
-
+            await _context.Notifications.AddAsync(notification, ct);
             await _context.SaveChangesAsync(ct);
         }
 
-        public async Task SendToStaffAsync(
-            string title,
-            string content,
-            CancellationToken ct = default)
+        public async Task SendToStaffAsync(string title, string content, CancellationToken ct = default)
         {
-            var staffIds = await _context.Users
-                .Where(u => u.Role.RoleName == RoleName.STAFF)
-                .Select(u => u.UserId)
-                .ToListAsync(ct);
-
+            var staffIds = await _context.Users.Where(u => u.Role.RoleName == RoleName.STAFF).Select(u => u.UserId).ToListAsync(ct);
             var notifications = staffIds
                 .Select(id => new Notification
                 {
                     UserId = id,
-
                     Title = title,
-
                     Content = content,
-
                     IsRead = false,
-
                     CreatedAt = DateTime.UtcNow
-                })
-                .ToList();
-
-            await _context.Notifications
-                .AddRangeAsync(notifications, ct);
-
+                }).ToList();
+            await _context.Notifications.AddRangeAsync(notifications, ct);
             await _context.SaveChangesAsync(ct);
         }
     }

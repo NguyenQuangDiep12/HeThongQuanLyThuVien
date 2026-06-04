@@ -85,7 +85,6 @@ namespace HeThongQuanLyThuVien.Services
                     ShelfLocation = bc.ShelfLocation,
                     Condition = bc.Condition.ToString(),
                     Status = bc.Status.ToString(),
-                    IsReferenceOnly = bc.IsReferenceOnly,
                     CreatedAt = bc.CreatedAt,
                     BookId = bc.BookId,
                     BookTitle = bc.Book != null ? bc.Book.Title : string.Empty,
@@ -107,7 +106,7 @@ namespace HeThongQuanLyThuVien.Services
 
             return Data;
         }
-
+        // | POST | /book-copies/book/:id | Thêm bản sao sách | Staff/Admin |
         public async Task<BookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
         {
             // Kiểm tra đầu sách tồn tại
@@ -156,7 +155,7 @@ namespace HeThongQuanLyThuVien.Services
                 BookTitle = bookTitle
             };
         }
-
+        // | PUT | /book-copies/:id | Cập nhật tình trạng bản sao | Staff/Admin |
         public async Task UpdateBookCopyAsync(int copyId, UpdateBookCopyRequest request, CancellationToken ct = default)
         {
             var copy = await _context.BookCopies
@@ -173,7 +172,7 @@ namespace HeThongQuanLyThuVien.Services
 
             await _context.SaveChangesAsync(ct);
         }
-
+        // | PATCH | /book-copies/:id/status | Thay đổi trạng thái bản sao | Staff/Admin |
         public async Task ChangeBookCopyStatusAsync(int copyId, UpdateBookCopyStatusRequest request, CancellationToken ct = default)
         {
             int rows = await _context.BookCopies
@@ -185,7 +184,7 @@ namespace HeThongQuanLyThuVien.Services
             if (rows == 0)
                 throw new NotFoundException("Bản sao sách không tồn tại!");
         }
-
+        // | DELETE | /book-copies/:id | Xóa bản sao sách | Admin |
         public async Task DeleteBookCopyAsync(int copyId, CancellationToken ct = default)
         {
             // Kiểm tra quyền Admin

@@ -1,6 +1,11 @@
 ﻿using HeThongQuanLyThuVien.Models.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace HeThongQuanLyThuVien.DTOs.Users
 {
-    public record UpdateLibraryCardStatusRequest(CardStatus Status);
+    public class UpdateLibraryCardStatusRequest 
+    { 
+        [Required] 
+        public CardStatus Status { get; set; } 
+    }
 }

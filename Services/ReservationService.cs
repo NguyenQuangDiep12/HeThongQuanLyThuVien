@@ -51,8 +51,7 @@ namespace HeThongQuanLyThuVien.Services
             };
         }
         // POST /reservations — Staff tao phieu dat truoc
-        public async Task<ReservationResponse> CreateReservationAsync(
-            CreateReservationRequest request, CancellationToken ct = default)
+        public async Task<ReservationResponse> CreateReservationAsync(CreateReservationRequest request, CancellationToken ct = default)
         {
             // TH1: Kiem tra nguoi dung
             var user = await _context.Users
@@ -90,8 +89,7 @@ namespace HeThongQuanLyThuVien.Services
                 .AsNoTracking()
                 .AnyAsync(bc =>
                     bc.BookId == request.BookId &&
-                    bc.Status == BookCopyStatus.AVAILABLE &&
-                    !bc.IsReferenceOnly,
+                    bc.Status == BookCopyStatus.AVAILABLE,
                 ct);
 
             if (hasAvailableCopy)

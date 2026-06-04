@@ -1,10 +1,13 @@
 ﻿using HeThongQuanLyThuVien.Models.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace HeThongQuanLyThuVien.DTOs.Users
 {
     // PATCH /users/:id/card-status
-    public record UpdateUserStatusRequest(
-            UserStatus Status,
-            DateTime? UpdatedAt
-        );
+    public class UpdateUserStatusRequest 
+    { 
+        [Required] 
+        public UserStatus Status 
+        { get; set; } 
+    }
 }

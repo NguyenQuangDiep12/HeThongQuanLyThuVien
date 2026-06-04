@@ -18,7 +18,7 @@ namespace HeThongQuanLyThuVien.Controllers
             _borrowRecordService = borrowRecordService;
         }
 
-        // GET /api/borrow-records  (Staff/Admin)
+        // GET /api/borrow-records  (Staff/Admin) | GET | /borrow-records | Danh sách phiếu mượn | Staff/Admin |
         [HttpGet]
         [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> GetListBorrowRecords([FromQuery] BorrowRecordQueryRequest request, CancellationToken ct)
@@ -32,7 +32,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // GET /api/users/:id/borrow-records  (Owner/Staff/Admin)
+        // GET /api/users/:id/borrow-records  (Owner/Staff/Admin) | GET | /users/:id/borrow-records | Lịch sử mượn sách của người dùng | Owner/Staff/Admin |
         // Route dat o day vi dung prefix /api/users/:id
         [HttpGet("/api/users/{id:int}/borrow-records")]
         [Authorize(Roles = "READER,STAFF,ADMIN")]
@@ -47,7 +47,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // GET /api/borrow-records/:id  (Owner/Staff/Admin)
+        // GET /api/borrow-records/:id  (Owner/Staff/Admin)  | GET | /borrow-records/:id | Chi tiết phiếu mượn | Owner/Staff/Admin |
         [HttpGet("{id:int}")]
         [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> GetDetailBorrowRecord([FromRoute] int id, CancellationToken ct)
@@ -61,7 +61,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // POST /api/borrow-records  (Staff/Admin tao phieu muon)
+        // POST /api/borrow-records  (Staff/Admin tao phieu muon) | POST | /borrow-records | Tạo phiếu mượn mới | Staff/Admin |
         [HttpPost]
         [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> CreateBorrowRecord([FromBody] CreateBorrowRecordRequest request, CancellationToken ct)
@@ -76,7 +76,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // POST /api/borrow-records/:id/extension-requests  (Reader gui yeu cau gia han)
+        // POST /api/borrow-records/:id/extension-requests  (Reader gui yeu cau gia han) | POST | /borrow-records/:id/extension-requests | Gửi yêu cầu gia hạn sách | Owner |
         [HttpPost("{id:int}/extension-requests")]
         [Authorize(Roles = "READER")]
         public async Task<IActionResult> SubmitBookRenewal([FromRoute] int id, CancellationToken ct)
@@ -91,7 +91,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // PATCH /api/borrow-records/:id/return  (Staff/Admin xac nhan tra sach)
+        // PATCH /api/borrow-records/:id/return  (Staff/Admin xac nhan tra sach) | PATCH | /borrow-records/:id/return | Xác nhận trả sách | Staff/Admin |
         [HttpPatch("{id:int}/return")]
         [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> ConfirmBookReturned([FromRoute] int id, [FromBody] ConfirmReturnRequest request, CancellationToken ct)
@@ -105,7 +105,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // PATCH /api/borrow-records/:id/cancel  (Owner/Staff/Admin huy phieu muon)
+        // PATCH /api/borrow-records/:id/cancel  (Owner/Staff/Admin huy phieu muon) | PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin |
         [HttpPatch("{id:int}/cancel")]
         [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> CancelLoanPass([FromRoute] int id, CancellationToken ct)
@@ -121,7 +121,7 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // PATCH /api/borrow-records/:id/extend  (Staff/Admin xac nhan gia han)
+        // PATCH /api/borrow-records/:id/extend  (Staff/Admin xac nhan gia han) | PATCH | /borrow-records/:id/extend | Gia hạn sách | Staff/Admin |
         [HttpPatch("{id:int}/extend")]
         [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> ConfirmBookRenewal([FromRoute] int id, CancellationToken ct)

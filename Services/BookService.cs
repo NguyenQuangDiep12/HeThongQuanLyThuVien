@@ -9,6 +9,7 @@ using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace HeThongQuanLyThuVien.Services
 {
@@ -25,43 +26,31 @@ namespace HeThongQuanLyThuVien.Services
         public async Task<BookResponse> CreateBookAsync(CreateBookRequest request,CancellationToken ct = default)
         {
             // Kiem tra ISBN
-            bool isExists = await _context.Books
-                .AnyAsync(b => b.ISBN == request.ISBN, ct);
-
+            bool isExists = await _context.Books.AnyAsync(b => b.ISBN == request.ISBN, ct);
             if (isExists)
             {
-                throw new ConflictException(
-                    "Sach voi ISBN nay da ton tai!");
+                throw new ConflictException("Sach voi ISBN nay da ton tai!");
             }
-
             // Validate Author
-            bool authorExists = await _context.Authors
-                .AnyAsync(a => a.AuthorId == request.AuthorId, ct);
+            var validAuthorCount = await _context.Authors.CountAsync(a => request.AuthorIds.Contains(a.AuthorId), ct);
 
-            if (!authorExists)
+            if (validAuthorCount != request.AuthorIds.Count)
             {
-                throw new NotFoundException(
-                    "Tac gia khong ton tai!");
+                throw new NotFoundException("Một hoặc nhiều tác giả không tồn tại!");
             }
-
             // Validate Category
-            bool categoryExists = await _context.Categories
-                .AnyAsync(c => c.CategoryId == request.CategoryId, ct);
+            var validCategoryCount = await _context.Categories.CountAsync(c => request.CategoryIds.Contains(c.CategoryId), ct);
 
-            if (!categoryExists)
+            if (validCategoryCount != request.CategoryIds.Count)
             {
-                throw new NotFoundException(
-                    "Danh muc khong ton tai!");
+                throw new NotFoundException("Một hoặc nhiều danh mục không tồn tại!");
             }
-
             // Validate Publisher
-            bool publisherExists = await _context.Publisher
-                .AnyAsync(p => p.PublisherId == request.PublisherId, ct);
+            bool publisherExists = await _context.Publisher.AnyAsync(p => p.PublisherId == request.PublisherId, ct);
 
             if (!publisherExists)
             {
-                throw new NotFoundException(
-                    "Nha xuat ban khong ton tai!");
+                throw new NotFoundException("Nhà xuất bản không tồn tại!");
             }
 
             // Tao dau sach
@@ -77,22 +66,20 @@ namespace HeThongQuanLyThuVien.Services
             };
 
             // Gan tac gia
-            book.BookAuthors = new List<BookAuthor>
-            {
-                new BookAuthor
+            book.BookAuthors = request.AuthorIds
+                .Distinct()
+                .Select(AuthorId => new BookAuthor
                 {
-                    AuthorId = request.AuthorId
-                }
-            };
+                    AuthorId = AuthorId
+                }).ToList();
 
             // Gan danh muc
-            book.BookCategories = new List<BookCategory>
-            {
-                new BookCategory
+            book.BookCategories = request.CategoryIds
+                .Distinct()
+                .Select(CategoryId => new BookCategory
                 {
-                    CategoryId = request.CategoryId
-                }
-            };
+                    CategoryId = CategoryId
+                }).ToList();
 
             await _context.Books.AddAsync(book, ct);
 
@@ -141,53 +128,58 @@ namespace HeThongQuanLyThuVien.Services
                     "ISBN da duoc su dung!");
             }
             // Validate Author
-            bool authorExists = await _context.Authors
-                .AnyAsync(a => a.AuthorId == request.AuthorId, ct);
-            if (!authorExists)
+            var authorIds = request.AuthorIds.Distinct().ToList();
+
+            var authorCount = await _context.Authors.CountAsync(a => request.AuthorIds.Contains(a.AuthorId), ct);
+
+            if (authorCount != request.AuthorIds.Count)
             {
-                throw new NotFoundException(
-                    "Tac gia khong ton tai!");
+                throw new NotFoundException("Mot hoac nhieu tac gia khong ton tai!");
             }
             // Validate Category
-            bool categoryExists = await _context.Categories
-                .AnyAsync(c => c.CategoryId == request.CategoryId, ct);
-            if (!categoryExists)
+            var cateogoryIds = request.CategoryIds.Distinct().ToList();
+
+            var categoryCount = await _context.Categories.CountAsync(c => request.CategoryIds.Contains(c.CategoryId), ct);
+
+            if (categoryCount != request.CategoryIds.Count)
             {
-                throw new NotFoundException(
-                    "Danh muc khong ton tai!");
+                throw new NotFoundException("Mot hoac nhieu danh muc khong ton tai!");
             }
             // Validate Publisher
             bool publisherExists = await _context.Publisher
                 .AnyAsync(p => p.PublisherId == request.PublisherId, ct);
             if (!publisherExists)
             {
-                throw new NotFoundException(
-                    "Nha xuat ban khong ton tai!");
+                throw new NotFoundException("Nha xuat ban khong ton tai!");
             }
             // Update thong tin
             book.Title = request.Title;
             book.ISBN = request.ISBN;
             book.PublisherId = request.PublisherId;
-            // Neu UpdateBookRequest co cac field nay thi moi gan
-            // khong thi xoa dong duoi di
-            // book.Language = request.Language;
-            // book.Description = request.Description;
-            // book.CoverImage = request.CoverImage;
+            book.Language = request.Language;
+            book.Description = request.Description;
+            book.CoverImage = request.CoverImage;
             book.UpdatedAt = DateTime.UtcNow;
+
             // Update tac gia
-            book.BookAuthors.Clear();
-            book.BookAuthors.Add(new BookAuthor
+            _context.BookAuthors.RemoveRange(book.BookAuthors);
+
+            book.BookAuthors = authorIds.Select(authorId => new BookAuthor
             {
                 BookId = bookId,
-                AuthorId = request.AuthorId
-            });
+                AuthorId = authorId
+            }).ToList();
+
             // Update danh muc
-            book.BookCategories.Clear();
-            book.BookCategories.Add(new BookCategory
+            _context.BookCategories.RemoveRange(book.BookCategories);
+
+            book.BookCategories = cateogoryIds.Select(categoryId => new BookCategory
             {
                 BookId = bookId,
-                CategoryId = request.CategoryId
-            });
+                CategoryId = categoryId
+            }).ToList();
+
+
             await _context.SaveChangesAsync(ct);
             return new BookResponse(
                 book.BookId,

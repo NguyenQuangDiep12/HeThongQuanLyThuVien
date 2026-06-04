@@ -15,10 +15,10 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         Task<PublisherResponse> GetPublisherByIdAsync(int publisherId, CancellationToken ct = default);
 
         // POST /publishers
-        Task<PublisherResponse> AddPublisherAsync(CreatePublisherRequest request, CancellationToken ct = default);
+        Task<PublisherResponse> AddPublisherAsync(PublisherRequest request, CancellationToken ct = default);
 
         // PUT /publishers/:id
-        Task UpdatePublisherAsync(int publisherId, UpdatePublisherRequest request, CancellationToken ct = default);
+        Task UpdatePublisherAsync(int publisherId, PublisherRequest request, CancellationToken ct = default);
 
         // DELETE /publishers/:id  (chỉ Admin)
         Task DeletePublisherAsync(int publisherId, CancellationToken ct = default);

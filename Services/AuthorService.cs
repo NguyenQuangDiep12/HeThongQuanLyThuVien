@@ -58,24 +58,17 @@ namespace HeThongQuanLyThuVien.Services
         // | DELETE | /authors/:id | Xóa tác giả | Admin |
         public async Task DeleteAuthorAsync(int id, CancellationToken ct = default)
         {
-            var roleUser = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (roleUser != "ADMIN")
-            {
-                throw new UnauthorizedException("Nguoi dung khong co quyen thuc hien chuc nang nay!");
-            }
 
             bool exist = await _context.Authors.AnyAsync(a => a.AuthorId == id);
+
             if (!exist)
             {
                 throw new NotFoundException("Tac gia khong ton tai!");
             }
             
-            int rows = await _context.Authors
-                .Where(a => a.AuthorId == id)
-                .ExecuteDeleteAsync(ct);
+            int rows = await _context.Authors.Where(a => a.AuthorId == id).ExecuteDeleteAsync(ct);
 
-            if (rows == 0)
-                throw new NotFoundException("Tac gia khong ton tai!");
+            if (rows == 0) throw new NotFoundException("Tac gia khong ton tai!");
         }
         // | GET | /authors | Danh sách tác giả | Public |
         public async Task<List<AuthorResponse>> GetListAuthorsAsync(CancellationToken ct = default)

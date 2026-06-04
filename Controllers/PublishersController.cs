@@ -48,7 +48,7 @@ namespace HeThongQuanLyThuVien.Controllers
         // POST /api/publishers  (Staff/Admin)
         [HttpPost]
         [Authorize(Roles = "STAFF,ADMIN")]
-        public async Task<IActionResult> AddPublisher([FromBody] CreatePublisherRequest request, CancellationToken ct)
+        public async Task<IActionResult> AddPublisher([FromBody] PublisherRequest request, CancellationToken ct)
         {
             var result = await _publisherService.AddPublisherAsync(request, ct);
             return Ok(new ApiResponse<PublisherResponse>
@@ -62,7 +62,7 @@ namespace HeThongQuanLyThuVien.Controllers
         // PUT /api/publishers/:id  (Staff/Admin)
         [HttpPut("{id:int}")]
         [Authorize(Roles = "STAFF,ADMIN")]
-        public async Task<IActionResult> UpdatePublisher([FromRoute] int id, [FromBody] UpdatePublisherRequest request, CancellationToken ct)
+        public async Task<IActionResult> UpdatePublisher([FromRoute] int id, [FromBody] PublisherRequest request, CancellationToken ct)
         {
             await _publisherService.UpdatePublisherAsync(id, request, ct);
             return Ok(new ApiResponse<object>

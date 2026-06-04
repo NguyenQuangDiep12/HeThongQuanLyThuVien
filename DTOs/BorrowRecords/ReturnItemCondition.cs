@@ -1,4 +1,5 @@
 ﻿using HeThongQuanLyThuVien.Models.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace HeThongQuanLyThuVien.DTOs.BorrowRecords
 {
@@ -6,6 +7,7 @@ namespace HeThongQuanLyThuVien.DTOs.BorrowRecords
     public class ReturnItemCondition
     {
         // CopyId de xac dinh chinh xac ban sao nao trong phieu muon
+        [Range(1, int.MaxValue)]
         public int CopyId { get; set; }
 
         // Tinh trang vat ly Staff kiem tra khi nhan lai sach
