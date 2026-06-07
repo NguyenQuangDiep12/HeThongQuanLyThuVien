@@ -1,4 +1,4 @@
-﻿using HeThongQuanLyThuVien.Data;
+using HeThongQuanLyThuVien.Data;
 using HeThongQuanLyThuVien.Middlewares;
 using HeThongQuanLyThuVien.Options;
 using HeThongQuanLyThuVien.Services;
@@ -186,6 +186,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 

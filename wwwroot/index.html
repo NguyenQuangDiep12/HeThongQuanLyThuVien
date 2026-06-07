@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Thư viện</title>
+    <script>
+        (function () {
+            const token = localStorage.getItem('accessToken');
+            const user = localStorage.getItem('currentUser');
+            if (token && user) {
+                try {
+                    const role = JSON.parse(user).role;
+                    if (role === 'ADMIN') window.location.href = '/pages/dashboard/index.html';
+                    else if (role === 'STAFF') window.location.href = '/pages/borrow-records/index.html';
+                    else window.location.href = '/pages/book-search/index.html';
+                } catch {
+                    window.location.href = '/pages/login/index.html';
+                }
+            } else {
+                window.location.href = '/pages/login/index.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <p>Đang chuyển hướng...</p>
+</body>
+</html>

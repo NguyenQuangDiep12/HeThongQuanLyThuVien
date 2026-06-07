@@ -63,3 +63,6 @@ _ReSharper*/
 # Coverage
 coverage/
 *.coverage
+
+#AI AGENT
+wwwroot/docs

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết độc giả - LibraryHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/global.css" rel="stylesheet">
+</head>
+<body>
+    <nav id="sidebar" class="sidebar"><div class="sidebar-brand"><i class="bi bi-book-half"></i><h5>LibraryHub</h5></div><nav class="nav flex-column py-2" id="sidebarNav"></nav></nav>
+    <div class="main-content">
+        <header class="topbar d-flex align-items-center justify-content-between px-4">
+            <div class="d-flex align-items-center gap-3"><button class="btn btn-link text-dark" id="sidebarToggle"><i class="bi bi-list fs-4"></i></button><h5 class="mb-0" id="pageTitle">Chi tiết độc giả</h5></div>
+            <button class="btn btn-outline-secondary btn-sm" id="btnLogout"><i class="bi bi-box-arrow-right"></i></button>
+        </header>
+        <div class="content">
+            <nav aria-label="breadcrumb" class="mb-3"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.html">Độc giả</a></li><li class="breadcrumb-item active" id="userName">—</li></ol></nav>
+            <div class="row g-3">
+                <div class="col-md-6"><div class="card shadow-sm"><div class="card-header fw-semibold">Thông tin</div><div class="card-body">
+                    <p>Email: <span id="userEmail">—</span></p><p>SĐT: <span id="userPhone">—</span></p><p>Địa chỉ: <span id="userAddress">—</span></p>
+                    <p>Trạng thái: <span id="userStatus">—</span></p><p>Mã thẻ: <span id="userCard">—</span> <span id="userCardStatus"></span></p>
+                    <div id="adminActions" style="display:none"><button class="btn btn-danger btn-sm" id="btnLock">Khóa</button> <button class="btn btn-success btn-sm" id="btnUnlock">Mở khóa</button></div>
+                </div></div></div>
+                <div class="col-md-6"><div class="card shadow-sm"><div class="card-header fw-semibold">Lịch sử mượn (gần đây)</div>
+                    <table class="table mb-0"><thead><tr><th>Mã</th><th>Ngày</th><th>TT</th></tr></thead><tbody id="borrowHistory"></tbody></table>
+                </div></div>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999"><div id="appToast" class="toast align-items-center border-0"><div class="d-flex"><div class="toast-body" id="toastMessage"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script><script src="/js/auth.js"></script><script src="/js/utils.js"></script><script src="/js/layout.js"></script><script src="users.js"></script>
+</body>
+</html>
