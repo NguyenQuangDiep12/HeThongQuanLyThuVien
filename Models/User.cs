@@ -13,6 +13,8 @@ namespace HeThongQuanLyThuVien.Models
         public string Address { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
         public UserStatus Status { get; set; } = UserStatus.ACTIVE;
+        public string? ResetOpt { get; set; }
+        public DateTime? ResetOtpExpiry { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         // Navigation
