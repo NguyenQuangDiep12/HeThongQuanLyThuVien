@@ -88,7 +88,10 @@ builder.Services.AddAuthentication(options =>
         OnChallenge = async context =>
         {
             context.HandleResponse();
+
             context.Response.StatusCode = 401;
+
+            context.Response.ContentType = "application/json";
 
             var response = new
             {
@@ -106,6 +109,7 @@ builder.Services.AddAuthentication(options =>
         OnForbidden = async context =>
         {
             context.Response.StatusCode = 403;
+
             context.Response.ContentType = "application/json";
 
             var response = new

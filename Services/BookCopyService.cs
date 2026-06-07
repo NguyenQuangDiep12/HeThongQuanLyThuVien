@@ -6,7 +6,6 @@ using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Runtime.InteropServices;
 using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Services
@@ -106,55 +105,61 @@ namespace HeThongQuanLyThuVien.Services
 
             return Data;
         }
-        // | POST | /book-copies/book/:id | Thêm bản sao sách | Staff/Admin |
-        public async Task<BookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
-        {
-            // Kiểm tra đầu sách tồn tại
-            bool bookExists = await _context.Books
-                .AnyAsync(b => b.BookId == bookId, ct);
 
-            if (!bookExists)
+        // | POST | /book-copies/book/:id | Thêm bản sao sách | Staff/Admin |
+        public async Task<CreateBookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
+        {
+            // 1. Kiểm tra đầu sách tồn tại, lấy luôn Title
+            var book = await _context.Books
+                .AsNoTracking()
+                .Where(b => b.BookId == bookId)
+                .Select(b => new { b.BookId, b.Title })
+                .FirstOrDefaultAsync(ct);
+
+            if (book is null)
                 throw new NotFoundException("Đầu sách không tồn tại!");
 
-            // Kiểm tra barcode trùng
-            bool barcodeExists = await _context.BookCopies
-                .AnyAsync(bc => bc.Barcode == request.Barcode, ct);
+            // 2. Tạo danh sách bản sao
+            var now = DateTime.UtcNow;
+            var copies = new List<BookCopy>();
 
-            if (barcodeExists)
-                throw new ConflictException("Barcode đã tồn tại!");
+            // Lay so ban sao hien tai
+            var currentCopies = await _context.BookCopies.CountAsync(x => x.BookId == bookId ,ct); // 3
 
-            // Tạo bản sao sách
-            var copy = new BookCopy
-            {
-                BookId = bookId,
-                Barcode = request.Barcode,
-                ShelfLocation = request.ShelfLocation,
-                Status = BookCopyStatus.AVAILABLE,
-                Condition = BookCondition.NORMAL,
-                CreatedAt = DateTime.UtcNow
-            };
+            for (int i = 0; i < request.Quantity; i++)
+            { // i = 0
+                var copyNumber = currentCopies + i + 1; // 3 + 0 + 1 = 4
+                copies.Add(new BookCopy
+                {
+                    BookId = bookId,
+                    Barcode = await GenerateUniqueBarcodeAsync(bookId, copyNumber,ct),
+                    ShelfLocation = request.ShelfLocation,
+                    Status = BookCopyStatus.AVAILABLE,
+                    Condition = BookCondition.NORMAL,
+                    CreatedAt = now
+                });
+            }
 
-            await _context.BookCopies.AddAsync(copy, ct);
+            await _context.BookCopies.AddRangeAsync(copies, ct);
             await _context.SaveChangesAsync(ct);
 
-            // Load tên sách
-            string bookTitle = await _context.Books
-                .Where(b => b.BookId == bookId)
-                .Select(b => b.Title)
-                .FirstAsync(ct);
-
-            return new BookCopyResponse
+            return new CreateBookCopyResponse
             {
-                CopyId = copy.CopyId,
-                BookId = copy.BookId,
-                Barcode = copy.Barcode,
-                ShelfLocation = copy.ShelfLocation ?? string.Empty,
-                Status = copy.Status.ToString(),
-                Condition = copy.Condition.ToString(),
-                CreatedAt = copy.CreatedAt,
-                BookTitle = bookTitle
+                TotalCreated = copies.Count,
+                Copies = copies.Select(c => new BookCopyResponse
+                {
+                    CopyId = c.CopyId,
+                    BookId = c.BookId,
+                    BookTitle = book.Title,
+                    Barcode = c.Barcode,
+                    ShelfLocation = c.ShelfLocation ?? string.Empty,
+                    Status = c.Status.ToString(),
+                    Condition = c.Condition.ToString(),
+                    CreatedAt = c.CreatedAt
+                }).ToList()
             };
         }
+
         // | PUT | /book-copies/:id | Cập nhật tình trạng bản sao | Staff/Admin |
         public async Task UpdateBookCopyAsync(int copyId, UpdateBookCopyRequest request, CancellationToken ct = default)
         {
@@ -211,6 +216,29 @@ namespace HeThongQuanLyThuVien.Services
             _context.BookCopies.Remove(copy);
 
             await _context.SaveChangesAsync(ct);
+        }
+
+
+        // Private Function
+        private async Task<string> GenerateUniqueBarcodeAsync(int BookId, int copyNumber,CancellationToken ct = default)
+        {
+            string barcode;
+            int attempt = 0;
+            const int maxAttempts = 10;
+
+            do
+            {
+                if (attempt++ > maxAttempts)
+                {
+                    throw new ConflictException("Không thể tạo barcode duy nhất sau nhiều lần thử!");
+                }
+
+                // Format: BK-BookId:D4-C-copyNumber:D3
+                // Y nghia int:D4 dinh dang decimal format bien so nguyen co toi thieu 4 chu so vd 1 => 0001 
+                barcode = $"BK-{BookId:D4}-C-{copyNumber:D3}";
+            } while (await _context.BookCopies.AnyAsync(c => c.Barcode == barcode, ct));
+
+            return barcode;
         }
     }
 }

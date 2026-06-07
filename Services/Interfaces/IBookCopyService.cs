@@ -16,7 +16,7 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         Task<BookCopyDetailResponse> GetBookCopyByIdAsync(int copyId, CancellationToken ct = default);
 
         // POST /book-copies/book/:id — thêm bản sao cho một đầu sách
-        Task<BookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default);
+        Task<CreateBookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default);
 
         // PUT /book-copies/:id — cập nhật toàn bộ thông tin bản sao
         Task UpdateBookCopyAsync(int copyId, UpdateBookCopyRequest request, CancellationToken ct = default);

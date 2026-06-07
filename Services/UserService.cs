@@ -57,7 +57,7 @@ namespace HeThongQuanLyThuVien.Services
             await _context.Users.AddAsync(staff);
             await _context.SaveChangesAsync(ct);
         }
-        // GET /users - Admin xem danh sach staff
+        // | GET | /staffs | Danh sách nhân viên | Admin |
         public async Task<PaginationResponse<UserListInfoResponse>> GetStaffsAsync(
             GetUserRequest request, CancellationToken ct = default)
         {

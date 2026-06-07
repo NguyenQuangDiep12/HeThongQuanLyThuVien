@@ -51,7 +51,7 @@ namespace HeThongQuanLyThuVien.Controllers
         public async Task<IActionResult> AddBookCopy([FromRoute] int id, [FromBody] CreateBookCopyRequest request, CancellationToken ct)
         {
             var result = await _bookCopyService.CreateBookCopyAsync(id, request, ct);
-            return Ok(new ApiResponse<BookCopyResponse>
+            return Ok(new ApiResponse<CreateBookCopyResponse>
             {
                 Success = true,
                 Data = result,
