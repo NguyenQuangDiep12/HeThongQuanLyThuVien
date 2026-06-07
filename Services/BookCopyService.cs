@@ -13,12 +13,10 @@ namespace HeThongQuanLyThuVien.Services
     public class BookCopyService : IBookCopyService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IHttpContextAccessor _contextAccessor;
         public BookCopyService(
-            ApplicationDbContext context, IHttpContextAccessor contextAccessor)
+            ApplicationDbContext context)
         {
             _context = context;
-            _contextAccessor = contextAccessor;
         }
 
         // GET /book-copies  STAFF/ADMIN
@@ -71,7 +69,7 @@ namespace HeThongQuanLyThuVien.Services
                 TotalRecords = total,
             };
         }
-        // GET | /book-copies/:id     STAFF/ADMIN
+        // GET | /book-copies/:id  STAFF/ADMIN
         public async Task<BookCopyDetailResponse> GetBookCopyByIdAsync(int copyId, CancellationToken ct = default)
         {
             var Data = await _context.BookCopies
@@ -192,16 +190,6 @@ namespace HeThongQuanLyThuVien.Services
         // | DELETE | /book-copies/:id | Xóa bản sao sách | Admin |
         public async Task DeleteBookCopyAsync(int copyId, CancellationToken ct = default)
         {
-            // Kiểm tra quyền Admin
-            var role = _contextAccessor.HttpContext?
-                .User
-                .FindFirst(ClaimTypes.Role)?
-                .Value;
-
-            if (role != "ADMIN")
-                throw new ForbiddenException(
-                    "Chỉ Admin mới có quyền xóa bản sao sách!");
-
             var copy = await _context.BookCopies
                 .FirstOrDefaultAsync(bc => bc.CopyId == copyId, ct);
 
@@ -210,8 +198,7 @@ namespace HeThongQuanLyThuVien.Services
 
             // Không cho xóa nếu đang được mượn
             if (copy.Status == BookCopyStatus.BORROWED)
-                throw new BadRequestException(
-                    "Không thể xóa bản sao đang được mượn!");
+                throw new BadRequestException("Không thể xóa bản sao đang được mượn!");
 
             _context.BookCopies.Remove(copy);
 

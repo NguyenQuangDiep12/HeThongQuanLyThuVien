@@ -52,15 +52,13 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .HasColumnName("borrow_type")
                 .IsRequired()
                 .HasMaxLength(30)
-                .HasConversion<string>()
-                .HasDefaultValue(BorrowType.TAKEHOME);
+                .HasConversion<string>();
 
             builder.Property(br => br.Status)
                 .HasColumnName("status")
                 .IsRequired()
                 .HasMaxLength(30)
-                .HasConversion<string>()
-                .HasDefaultValue(BorrowStatus.PENDING);
+                .HasConversion<string>();
 
             builder.Property(br => br.ApprovedAt)
                 .HasColumnName("approved_at");

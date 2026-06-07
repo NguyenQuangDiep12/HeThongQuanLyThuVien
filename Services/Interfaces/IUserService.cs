@@ -1,5 +1,6 @@
 ﻿using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.DTOs.Users;
+using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Services.Interfaces
 {
@@ -11,7 +12,7 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
     public interface IUserService
     {
         // UC21 — GET /users  (Staff/Admin)
-        Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, CancellationToken ct = default);
+        Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, ClaimsPrincipal currentUser, CancellationToken ct = default);
 
         // UC21 — GET /users/:id  (Owner/Staff/Admin)
         Task<UserProfileResponse> GetUserByIdAsync(int userId, CancellationToken ct = default);

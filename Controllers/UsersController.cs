@@ -12,10 +12,12 @@ namespace HeThongQuanLyThuVien.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UsersController(IUserService userService)
+        public UsersController(IUserService userService, IHttpContextAccessor httpContextAccessor)
         {
             _userService = userService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         // GET /api/users  (Staff/Admin)
@@ -23,7 +25,7 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "STAFF,ADMIN")] 
         public async Task<IActionResult> GetUsers([FromQuery] GetUserRequest request, CancellationToken ct)
         {
-            var result = await _userService.GetUsersAsync(request, ct);
+            var result = await _userService.GetUsersAsync(request, User, ct);
             return Ok(new ApiResponse<PaginationResponse<UserListInfoResponse>>
             {
                 Success = true,

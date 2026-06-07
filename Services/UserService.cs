@@ -178,30 +178,34 @@ namespace HeThongQuanLyThuVien.Services
             return user;
         }
         // GET /users - STAFF/ADMIN Xem danh sach nguoi dung
-        public async Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, CancellationToken ct = default)
+        public async Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, ClaimsPrincipal currentUser, CancellationToken ct = default)
         {
-            var query = _context.Users
-                .AsNoTracking()
-                .Where(u => u.Role.RoleName == RoleName.READER); // Giữ bộ lọc cứng ban đầu
+            var currentUserRole = currentUser.FindFirst(ClaimTypes.Role)?.Value;
 
-            // Tách riêng từng điều kiện động
+            IQueryable<User> query = _context.Users.AsNoTracking();
+
+            // STAFF chỉ xem được READER, ADMIN xem được tất cả
+            if (currentUserRole == RoleName.STAFF.ToString())
+            {
+                query = query.Where(u => u.Role.RoleName == RoleName.READER);
+            }
+            // ADMIN không filter role => xem toàn bộ
+
+            // Các filter động
             if (!string.IsNullOrWhiteSpace(request.FullName))
             {
                 query = query.Where(u => u.FullName.Contains(request.FullName.Trim()));
             }
-
             if (!string.IsNullOrWhiteSpace(request.Email))
             {
                 query = query.Where(u => u.Email.Contains(request.Email.Trim()));
             }
-
             if (request.Status != null)
             {
                 query = query.Where(u => u.Status == request.Status);
             }
 
             int total = await query.CountAsync(ct);
-
             var items = await query
                 .OrderBy(u => u.UserId)
                 .Skip((request.Page - 1) * request.PageSize)
@@ -214,17 +218,16 @@ namespace HeThongQuanLyThuVien.Services
                     Phone = u.Phone,
                     Role = u.Role.RoleName.ToString(),
                     Status = u.Status.ToString(),
-                    // Thêm check null an toàn tránh crash lỗi 500
                     CardStatus = u.LibraryCard != null ? u.LibraryCard.Status.ToString() : string.Empty,
                 }).ToListAsync(ct);
 
-            return new PaginationResponse<UserListInfoResponse> 
-                {
-                    Items = items, 
-                    Page = request.Page, 
-                    PageSize = request.PageSize, 
-                    TotalRecords = total 
-                };
+            return new PaginationResponse<UserListInfoResponse>
+            {
+                Items = items,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalRecords = total
+            };
         }
         // PATCH /user/:id/card-status - Admin mo/ khoa the thu vien
         public async Task UpdateLibraryCardStatusAsync(int userId, UpdateLibraryCardStatusRequest request, CancellationToken ct = default)

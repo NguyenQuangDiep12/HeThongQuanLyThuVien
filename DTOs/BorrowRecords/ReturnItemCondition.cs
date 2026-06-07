@@ -14,5 +14,9 @@ namespace HeThongQuanLyThuVien.DTOs.BorrowRecords
         // Mac dinh NORMAL neu khong truyen
         public BookCondition Condition { get; set; } = BookCondition.NORMAL;
         public BookCopyStatus CopyStatus { get; set; } = BookCopyStatus.AVAILABLE;
+
+        [Range(0, double.MaxValue)]
+        public decimal? FineAmount { get; set; }
+        public string? FineReason { get; set; }
     }
 }

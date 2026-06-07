@@ -1,5 +1,6 @@
 ﻿using HeThongQuanLyThuVien.Data;
 using HeThongQuanLyThuVien.Middlewares;
+using HeThongQuanLyThuVien.Options;
 using HeThongQuanLyThuVien.Services;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -8,12 +9,26 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
-// Cau hinh Swagger
+
+#region Cau hinh logic nghiep vu
+
+builder.Services.Configure<LibrarySettings>(builder.Configuration.GetSection("LibrarySettings"));
+
+#endregion
+
+#region Cau hinh Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -56,9 +71,14 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+#endregion
+
+#region Cau hinh SqlServer
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+#endregion
 
+#region Cau hinh authentication voi JwtBearer
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -126,10 +146,13 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
+#endregion
 
+#region Cau hinh Authorization Service
 builder.Services.AddAuthorization();
+#endregion
 
-// DI
+#region Dependencies Injection
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBookService, BookService>();
@@ -145,9 +168,14 @@ builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddTransient<GlobalExceptionMiddleware>();
+#endregion
 
-
+#region Cau hinh HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
+#endregion
+
+
+
 
 var app = builder.Build();
 

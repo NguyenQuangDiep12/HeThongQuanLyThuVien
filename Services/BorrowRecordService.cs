@@ -4,32 +4,32 @@ using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.Exceptions;
 using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
+using HeThongQuanLyThuVien.Options;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Services
 {
     public class BorrowRecordService : IBorrowRecordService
     {
-        // Quy tắc nghiệp vụ
-        private const int MaxBooksPerBorrow = 3;
-        private const int BorrowDurationDays = 7;
-        private const int ExtensionDays = 3;
-        private const int MaxExtensions = 2;
 
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
         private readonly IHttpContextAccessor _contextAccessor;
+        private readonly LibrarySettings _librarySettings;
 
         public BorrowRecordService(
             ApplicationDbContext context,
             INotificationService notificationService,
-            IHttpContextAccessor contextAccessor)
+            IHttpContextAccessor contextAccessor,
+            IOptions<LibrarySettings> librarySettings)
         {
             _context = context;
             _notificationService = notificationService;
             _contextAccessor = contextAccessor;
+            _librarySettings = librarySettings.Value;
         }
 
         // GET /borrow-records | GET | /borrow-records | Danh sách phiếu mượn | Staff/Admin |
@@ -126,7 +126,7 @@ namespace HeThongQuanLyThuVien.Services
             };
         }
         // GET /borrow-records/:id | GET | /borrow-records/:id | Chi tiết phiếu mượn | Owner/Staff/Admin |
-        public async Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId,CancellationToken ct = default)
+        public async Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, CancellationToken ct = default)
         {
             var record = await _context.BorrowRecords.AsNoTracking().Where(br => br.BorrowId == borrowId)
                 .Select(br => new BorrowRecordDetailResponse
@@ -166,9 +166,10 @@ namespace HeThongQuanLyThuVien.Services
         // POST /borrow-records | POST | /borrow-records | Tạo phiếu mượn mới | Staff/Admin |
         public async Task<BorrowRecordDetailResponse> CreateBorrowRecordAsync(int staffId, CreateBorrowRecordRequest request, CancellationToken ct = default)
         {
+            Console.WriteLine($"[DEBUG] request.BorrowType = {request.BorrowType} (int: {(int)request.BorrowType})");
             // Kiểm tra người dùng
             var reader = await _context.Users.Include(u => u.LibraryCard).FirstOrDefaultAsync(u => u.UserId == request.ReaderId, ct);
-            if (reader is null)
+            if (reader == null)
             {
                 throw new NotFoundException("Người dùng không tồn tại!");
             }
@@ -178,7 +179,7 @@ namespace HeThongQuanLyThuVien.Services
                 throw new ForbiddenException("Tài khoản đã bị khóa!");
             }
             // Kiểm tra thẻ thư viện
-            if (reader.LibraryCard is null || reader.LibraryCard.Status != CardStatus.ACTIVE)
+            if (reader.LibraryCard == null || reader.LibraryCard.Status != CardStatus.ACTIVE)
             {
                 throw new ForbiddenException("Thẻ thư viện không hợp lệ!");
             }
@@ -188,9 +189,9 @@ namespace HeThongQuanLyThuVien.Services
                 throw new ForbiddenException("Thẻ thư viện đã hết hạn!");
             }
             // Kiểm tra số lượng sách mượn
-            if (request.CopyIds.Count > MaxBooksPerBorrow)
+            if (request.CopyIds.Count > _librarySettings.MaxBooksPerBorrow)
             {
-                throw new BadRequestException($"Chỉ được mượn tối đa {MaxBooksPerBorrow} cuốn!");
+                throw new BadRequestException($"Chỉ được mượn tối đa {_librarySettings.MaxBooksPerBorrow} cuốn!");
             }
 
             // Đếm số sách đang mượn
@@ -199,12 +200,16 @@ namespace HeThongQuanLyThuVien.Services
                     bd.BorrowRecord.Status == BorrowStatus.BORROWING &&
                     bd.Status == BorrowDetailStatus.BORROWING).CountAsync(ct);
 
-            if (currentBorrowing + request.CopyIds.Count > MaxBooksPerBorrow)
+            // Kiểm tra số sách đang mượn trước đó và số sách hiện tại mượn vượt quá số sách được cho phép mượn
+            // ném lỗi người dùng vượt quá số sách
+            if (currentBorrowing + request.CopyIds.Count > _librarySettings.MaxBooksPerBorrow)
             {
                 throw new BadRequestException($"Người dùng đang mượn {currentBorrowing} sách!");
             }
             // Lấy danh sách bản sao
             var copies = await _context.BookCopies.Where(bc => request.CopyIds.Contains(bc.CopyId)).ToListAsync(ct);
+            // Gia su CopyIds = [2,3,4]
+            // SELECT * from BookCopies where CopyId In [2,3,4]
             // Kiểm tra tồn tại
             if (copies.Count != request.CopyIds.Count)
             {
@@ -223,19 +228,17 @@ namespace HeThongQuanLyThuVien.Services
                 ApprovedBy = staffId,
                 BorrowCode = GenerateBorrowCode(),
                 BorrowDate = DateTime.UtcNow,
-                DueDate = DateTime.UtcNow.AddDays(BorrowDurationDays),
+                DueDate = DateTime.UtcNow.AddDays(_librarySettings.BorrowDurationDays),
                 ExtensionCount = 0,
                 BorrowType = request.BorrowType,
                 Status = BorrowStatus.BORROWING,
                 ApprovedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
-                BorrowDetails = copies
-                    .Select(c => new BorrowDetail
+                BorrowDetails = copies.Select(c => new BorrowDetail
                     {
                         CopyId = c.CopyId,
                         Status = BorrowDetailStatus.BORROWING
-                    })
-                    .ToList()
+                    }).ToList()
             };
             await _context.BorrowRecords.AddAsync(borrowRecord, ct);
             // Cập nhật trạng thái bản sao
@@ -252,8 +255,9 @@ namespace HeThongQuanLyThuVien.Services
             var record = await _context.BorrowRecords
                 .Include(br => br.BorrowDetails)
                     .ThenInclude(bd => bd.BookCopy)
-                        .ThenInclude(bc => bc.Book).FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
-            if (record is null)
+                        .ThenInclude(bc => bc.Book)
+                .FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
+            if (record == null)
             {
                 throw new NotFoundException("Phiếu mượn không tồn tại!");
             }
@@ -263,10 +267,24 @@ namespace HeThongQuanLyThuVien.Services
                 throw new BadRequestException("Phiếu mượn không hợp lệ!");
             }
             var returnItems = request.ReturnItems ?? new List<ReturnItemCondition>();
+
+
+            // Validate: Cac copyId trong request phai thuoc ve BorrowRecord nay
+            var validCopyIds = record.BorrowDetails.Select(d => d.CopyId).ToHashSet();
+            var invalidCopyIds = returnItems
+
+                .Where(x => !validCopyIds.Contains(x.CopyId))
+                .Select(x => x.CopyId)
+                .ToList();
+            if (invalidCopyIds.Any())
+            {
+                throw new BadRequestException($"CopyId không hợp lệ hoặc không thuộc phiếu mượn này: {string.Join(", ", invalidCopyIds)}");
+            }
             var now = DateTime.UtcNow;
             foreach (var detail in record.BorrowDetails)
             {
                 var returnItem = returnItems.FirstOrDefault(x => x.CopyId == detail.CopyId);
+
                 var condition = returnItem?.Condition ?? BookCondition.NORMAL;
                 detail.ReturnedAt = now;
                 detail.ItemCondition = condition;
@@ -286,24 +304,30 @@ namespace HeThongQuanLyThuVien.Services
                             {
                                 BorrowDetailId = detail.BorrowDetailId,
                                 FineType = FineType.DAMAGED,
+                                Amount = returnItem!.FineAmount ?? 0,
+                                Reason = returnItem.FineReason ?? "Sách bị hư hỏng",
                                 PaymentStatus = PaymentStatus.PENDING,
                                 CreatedAt = now
                             }, ct);
                         break;
                     case BookCondition.LOST:
                         detail.Status = BorrowDetailStatus.LOST;
-                        detail.BookCopy.Status = BookCopyStatus.LOST;
+                        detail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
                         await _context.Fines.AddAsync(
                             new Fine
                             {
                                 BorrowDetailId = detail.BorrowDetailId,
                                 FineType = FineType.LOST,
+                                Amount = returnItem!.FineAmount ?? 0,
+                                Reason = returnItem.FineReason ?? "Sách bị mất",
                                 PaymentStatus = PaymentStatus.PENDING,
                                 CreatedAt = now
                             }, ct);
                         break;
                 }
             }
+
+            var overDueDays = (now.Date - record.DueDate.Date).Days;
             // Phạt quá hạn
             if (now > record.DueDate)
             {
@@ -314,6 +338,8 @@ namespace HeThongQuanLyThuVien.Services
                         {
                             BorrowDetailId = detail.BorrowDetailId,
                             FineType = FineType.OVERDUE,
+                            Amount = overDueDays * 5000,
+                            Reason = $"Trả quá hạn {overDueDays} ngày",
                             PaymentStatus = PaymentStatus.PENDING,
                             CreatedAt = now
                         }, ct);
@@ -323,34 +349,23 @@ namespace HeThongQuanLyThuVien.Services
             record.ReturnedDate = now;
             await _context.SaveChangesAsync(ct);
         }
-        // PATCH /borrow-records/:id/cancel | PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin |
+        // PATCH /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin
         public async Task CancelBorrowRecordAsync(int borrowId, int currentUserId, string currentRole, CancellationToken ct = default)
         {
             var record = await _context.BorrowRecords
-                .Include(br => br.BorrowDetails)
-                    .ThenInclude(bd => bd.BookCopy).FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
+                .FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
+
             if (record is null)
-            {
                 throw new NotFoundException("Phiếu mượn không tồn tại!");
-            }
+
+            // Chỉ được hủy khi PENDING
+            if (record.Status != BorrowStatus.PENDING)
+                throw new BadRequestException("Chỉ có thể hủy phiếu khi chưa được duyệt!");
+
             // Reader chỉ được hủy phiếu của mình
             if (currentRole == RoleName.READER.ToString() && record.ReaderId != currentUserId)
-            {
                 throw new ForbiddenException("Bạn không có quyền hủy phiếu này!");
-            }
-            if (record.Status != BorrowStatus.PENDING && record.Status != BorrowStatus.BORROWING)
-            {
-                throw new BadRequestException("Không thể hủy phiếu ở trạng thái hiện tại!");
-            }
-            // Trả trạng thái sách về AVAILABLE
-            if (record.Status == BorrowStatus.BORROWING)
-            {
-                foreach (var detail in record.BorrowDetails.Where(d => d.Status == BorrowDetailStatus.BORROWING))
-                {
-                    detail.Status = BorrowDetailStatus.RETURNED;
-                    detail.BookCopy.Status = BookCopyStatus.AVAILABLE;
-                }
-            }
+
             record.Status = BorrowStatus.CANCELLED;
             await _context.SaveChangesAsync(ct);
         }
@@ -377,22 +392,22 @@ namespace HeThongQuanLyThuVien.Services
             }
             ValidateExtensionEligibility(record);
             record.ExtensionCount += 1;
-            record.DueDate = record.DueDate.AddDays(ExtensionDays);
+            record.DueDate = record.DueDate.AddDays(_librarySettings.ExtensionDays);
             await _context.SaveChangesAsync(ct);
             // Gửi thông báo
             await _notificationService.SendAsync(record.ReaderId,"Gia hạn sách thành công",$"Phiếu mượn {record.BorrowCode} " + $"đã được gia hạn. " + $"Hạn trả mới: {record.DueDate:dd/MM/yyyy}.", ct);
         }
 
         // PRIVATE HELPERS
-        private static void ValidateExtensionEligibility(BorrowRecord record)
+        private void ValidateExtensionEligibility(BorrowRecord record)
         {
             if (record.Status != BorrowStatus.BORROWING)
             {
                 throw new BadRequestException("Phiếu mượn không ở trạng thái đang mượn!");
             }
-            if (record.ExtensionCount >= MaxExtensions)
+            if (record.ExtensionCount >= _librarySettings.MaxExtensions)
             {
-                throw new BadRequestException($"Đã vượt quá số lần gia hạn tối đa ({MaxExtensions})!");
+                throw new BadRequestException($"Đã vượt quá số lần gia hạn tối đa ({_librarySettings.MaxExtensions})!");
             }
             if (DateTime.UtcNow > record.DueDate)
             {

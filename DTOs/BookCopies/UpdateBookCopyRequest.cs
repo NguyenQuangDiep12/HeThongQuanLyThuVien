@@ -3,7 +3,7 @@
 namespace HeThongQuanLyThuVien.DTOs.BookCopies
 {
     public class UpdateBookCopyRequest { 
-        public string? ShelfLocation { get; set; } 
-        public BookCondition? Condition { get; set; } 
+        public string? ShelfLocation { get; set; }
+        public BookCondition? Condition { get; set; }
     }
 }

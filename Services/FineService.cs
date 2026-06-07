@@ -81,7 +81,7 @@ namespace HeThongQuanLyThuVien.Services
                     CreatedAt = f.CreatedAt
                 }).FirstOrDefaultAsync(ct);
 
-            if (fine is null)throw new NotFoundException("Phieu phat khong ton tai!");
+            if (fine is null)throw new NotFoundException("Phiếu phạt không tồn tại!");
             return fine;
         }
         // | GET | /users/:id/fines | Theo dõi vi phạm của người dùng | Staff/Admin |
@@ -89,7 +89,7 @@ namespace HeThongQuanLyThuVien.Services
         {
             bool userExists = await _context.Users.AnyAsync(u => u.UserId == userId, ct);
 
-            if (!userExists) throw new NotFoundException("Nguoi dung khong ton tai!");
+            if (!userExists) throw new NotFoundException("Người dùng không tồn tại!");
 
             var query = _context.Fines.AsNoTracking().Where(f => f.BorrowDetail.BorrowRecord.ReaderId == userId);
 
@@ -129,42 +129,29 @@ namespace HeThongQuanLyThuVien.Services
                 .Include(bd => bd.BookCopy)
                 .FirstOrDefaultAsync(bd => bd.BorrowDetailId == request.BorrowDetailId, ct);
             if (borrowDetail is null) 
-                throw new NotFoundException("Chi tiet phieu muon khong ton tai!");
-            bool fineExists = await _context.Fines.AnyAsync(f =>f.BorrowDetailId == request.BorrowDetailId && f.FineType == request.FineType, ct);
+                throw new NotFoundException("Chi tiết phiếu mượn không tồn tại!");
+            bool fineExists = await _context.Fines.AnyAsync(f => f.BorrowDetailId == request.BorrowDetailId && f.FineType == request.FineType, ct);
             if (fineExists)
             {
-                throw new BadRequestException( "Loai phieu phat nay da ton tai!");
+                throw new BadRequestException( "Loại phiếu phạt này không tồn tại!");
             }
             switch (request.FineType)
             {
                 case FineType.OVERDUE:
-                    if (borrowDetail.ReturnedAt is null)
+                    if (borrowDetail.ReturnedAt == null)
                     {
-                        throw new BadRequestException("Sach chua duoc tra!");
+                        throw new BadRequestException("Sách chưa được trả!");
                     }
-                    if (borrowDetail.ReturnedAt.Value <=
-                        borrowDetail.BorrowRecord.DueDate)
+                    if (borrowDetail.ReturnedAt.Value <= borrowDetail.BorrowRecord.DueDate)
                     {
-                        throw new BadRequestException(
-                            "Sach khong bi qua han!");
+                        throw new BadRequestException("Sách không bị quá hạn!");
                     }
-                    break;
-                case FineType.LOST:
-                    if (borrowDetail.BookCopy.Status ==
-                        BookCopyStatus.LOST)
-                    {
-                        throw new BadRequestException(
-                            "Ban sao sach da duoc danh dau mat!");
-                    }
-                    borrowDetail.BookCopy.Status =
-                        BookCopyStatus.LOST;
                     break;
                 case FineType.DAMAGED:
-                    borrowDetail.BookCopy.Status =
-                        BookCopyStatus.UNAVAILABLE;
+                    borrowDetail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
                     break;
                 default:
-                    throw new BadRequestException("Loai vi pham khong hop le!");
+                    throw new BadRequestException("Loại vị phạm không hợp lệ!");
             }
             var fine = new Fine
             {
@@ -184,9 +171,9 @@ namespace HeThongQuanLyThuVien.Services
         {
             var fine = await _context.Fines.FirstOrDefaultAsync(f => f.FineId == fineId, ct);
             if (fine is null)
-                throw new NotFoundException("Phieu phat khong ton tai!");
+                throw new NotFoundException("Phiếu mượn không tồn tại!");
             if (fine.PaymentStatus == PaymentStatus.PAID)
-                throw new BadRequestException("Phieu phat da duoc thanh toan!");
+                throw new BadRequestException("Phiếu phạt đã được thanh toán!");
             fine.PaymentStatus = PaymentStatus.PAID;
             fine.PaidAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);

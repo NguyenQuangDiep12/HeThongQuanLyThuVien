@@ -2,7 +2,7 @@
 {
     public enum BorrowStatus 
     { 
-        PENDING, 
+        PENDING,
         BORROWING, 
         RETURNED, 
         OVERDUE, 
