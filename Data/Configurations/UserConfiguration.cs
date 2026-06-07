@@ -59,6 +59,16 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .HasConversion<string>()
                 .HasDefaultValue(UserStatus.ACTIVE);
 
+            builder.Property(e => e.ResetOpt)
+                .HasColumnName("reset_otp")
+                .HasMaxLength(10)
+                .IsRequired(false);
+
+            builder.Property(e => e.ResetOtpExpiry)
+                .HasColumnName("reset_otp_expiry")
+                .HasColumnType("datetime2")
+                .IsRequired(false);
+
             builder.Property(u => u.CreatedAt)
                 .HasColumnName("created_at")
                 .IsRequired()

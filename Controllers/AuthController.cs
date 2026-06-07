@@ -56,7 +56,20 @@ namespace HeThongQuanLyThuVien.Controllers
             {
                 Success = true,
                 Data = null,
-                Message = "Da gui mat khau moi qua email"
+                Message = "Đã gửi OTP qua Email"
+            });
+        }
+
+        [HttpPost("verify-otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request, CancellationToken ct = default)
+        {
+            await _authService.VerifiyOtpAsync(request, ct);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "OTP hợp lệ. Mật khẩu mới đã được gửi qua Email"
             });
         }
 

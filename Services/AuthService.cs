@@ -104,34 +104,54 @@ namespace HeThongQuanLyThuVien.Services
 
         public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
         {
+            var query = _context.Users;
             // 4. He thong kiem tra email ton tai
-            var existEmail = await _context.Users.AnyAsync(u => u.Email == request.Email, ct);
+            var user = await query.FirstOrDefaultAsync(u => u.Email == request.Email, ct);
             //4a. Email co ton tai khong
-            if (!existEmail)
+            if (user == null)
             {
                 throw new NotFoundException("Email khong hop le!");
             }
 
-            // khoi tao password moi cap nhat du lieu va gui toi nguoi dung
-            var newPassword = Guid.NewGuid().ToString("N")[..6];
+            var otp = Random.Shared.Next(100000, 999999).ToString();
 
-            // ExecuteUpdateAsync dich luon ra sql ko can quan EntityTrackingChange nen ko can SaveCangesAsync() commit
-            // ham ExecuteUpdateAsync nhan 1 lambda object de cau hinh cac field can cap nhat 
-            // ham SetProperty() dung de set cot ben trong truyen lambda lay truong cua bang vd x => x.PasswordHash lay truong PasswordHash
-            await _context.Users
-                .Where(u => u.Email == request.Email)
-                .ExecuteUpdateAsync(setters =>
-                    setters.SetProperty(
-                        x => x.PasswordHash, 
-                        BCrypt.Net.BCrypt.HashPassword(newPassword)));
+            user.ResetOpt = otp;
+            user.ResetOtpExpiry = DateTime.UtcNow.AddMinutes(5);
 
+            await _context.SaveChangesAsync(ct);
 
-            // gui password moi toi nguoi dung
-            await _mailService.SendEmailAsync(
-                request.Email,
-                "Reset Password",
-                $"Mat khau moi cua ban la: {newPassword}");
+            await _mailService.SendEmailAsync(user.Email, "OTP Xác Thực", $"Mã OTP của bạn là {otp}");
+        }
 
+        public async Task VerifiyOtpAsync(VerifyOtpRequest request, CancellationToken ct = default)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email, ct);
+
+            if(user == null)
+            {
+                throw new NotFoundException("Khong tim thay nguoi dung!");
+            }
+
+            if(user.ResetOpt != request.Otp)
+            {
+                throw new ConflictException("OTP khong dung!");
+            }
+
+            if(user.ResetOtpExpiry == null || user.ResetOtpExpiry < DateTime.UtcNow)
+            {
+                throw new ConflictException("OTP da het han!");
+            }
+
+            var newPassword = Guid.NewGuid().ToString("N")[..8];
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+            user.ResetOpt = null;
+            user.ResetOtpExpiry = null;
+
+            await _context.SaveChangesAsync(ct);
+
+            await _mailService.SendEmailAsync(user.Email, "Mật khẩu mới", $"Mật khẩu mới của bạn là: {newPassword}");
         }
 
         public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
