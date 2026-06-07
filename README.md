@@ -19,6 +19,8 @@
 | POST | /auth/login | Đăng nhập tài khoản | Public |
 | POST | /auth/reset-password | Thay đổi mật khẩu | Owner |
 | POST | /auth/forgot-password | Quên mật khẩu | Public | 
+| POST | /auth/verify-otp | Xác thực OTP và cấp mật khẩu mới | Public |
+
 </details>
 ---
 
