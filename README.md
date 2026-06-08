@@ -121,7 +121,7 @@
 | POST | /borrow-records/:id/extension-requests | Gửi yêu cầu gia hạn sách | Owner |
 | POST | /borrow-records | Tạo phiếu mượn mới | Staff/Admin |
 | PATCH | /borrow-records/:id/return | Xác nhận trả sách | Staff/Admin |
-| PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin |
+| PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | Staff/Admin |
 | PATCH | /borrow-records/:id/extend | Gia hạn sách | Staff/Admin |
 </details>
 ---

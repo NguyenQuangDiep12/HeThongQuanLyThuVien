@@ -47,11 +47,6 @@ namespace HeThongQuanLyThuVien.Services
 
         public async Task DeletePublisherAsync(int id, CancellationToken ct = default)
         {
-            var roleUser = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (roleUser != "ADMIN")
-            {
-                throw new UnauthorizedException("Nguoi dung khong co quyen thuc hien chuc nang nay!");
-            }
             // Kiem tra con sach lien ket khong
             bool hasBooks = await _context.Books.AnyAsync(b => b.PublisherId == id, ct);
             if (hasBooks)

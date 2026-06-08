@@ -232,11 +232,6 @@ namespace HeThongQuanLyThuVien.Services
         // PATCH /user/:id/card-status - Admin mo/ khoa the thu vien
         public async Task UpdateLibraryCardStatusAsync(int userId, UpdateLibraryCardStatusRequest request, CancellationToken ct = default)
         {
-            // Check queyn Admin
-            string? currentRole = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (currentRole != "ADMIN")
-                throw new ForbiddenException("Chi co Admin moi co quyen thao tac tren the thu vien!");
-
             var card = await _context.LibraryCards.FirstOrDefaultAsync(l => l.UserId == userId, ct);
             if (card == null)
                 throw new NotFoundException("The thu vien khong ton tai!");
@@ -319,11 +314,6 @@ namespace HeThongQuanLyThuVien.Services
         // PATCH /users/:id/status  Khóa / mở tài khoản  Admin
         public async Task UpdateUserStatusAsync(int userId, UpdateUserStatusRequest request, CancellationToken ct = default)
         {
-            // Them check quyen Admin
-            string? currentRole = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (currentRole != "ADMIN")
-                throw new ForbiddenException("Chi Admin moi co quyen khoa/mo tai khoan!");
-
             // Ngan chan viec Admin tu khoa chinh minh (Logic Safety)
             string? currentUserId = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 

@@ -63,6 +63,6 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         /// Hủy phiếu mượn
         /// PATCH /borrow-records/:id/cancel
         /// </summary>
-        Task CancelBorrowRecordAsync(int borrowId, int currentUserId, string currentRole,CancellationToken ct = default);
+        Task CancelBorrowRecordAsync(int borrowId, CancellationToken ct = default);
     }
 }

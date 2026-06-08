@@ -51,12 +51,6 @@ namespace HeThongQuanLyThuVien.Services
         }
         public async Task DeleteCategoryAsync(int id, CancellationToken ct = default)
         {
-            var roleUser = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (roleUser != "ADMIN")
-            {
-                throw new UnauthorizedException("Nguoi dung khong co quyen thuc hien chuc nang nay!");
-            }
-
             // Kiem tra rang buoc — xoa danh muc con sach thi cascade xoa BookCategory
             int rows = await _context.Categories
                 .Where(c => c.CategoryId == id)

@@ -1,5 +1,6 @@
 ﻿using HeThongQuanLyThuVien.DTOs.Auth;
 using HeThongQuanLyThuVien.DTOs.Shared;
+using HeThongQuanLyThuVien.Exceptions;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,12 @@ namespace HeThongQuanLyThuVien.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IHttpContextAccessor contextAccessor)
         {
             _authService = authService;
+            _contextAccessor = contextAccessor;
         }
 
         // POST /api/auth/register
@@ -78,7 +81,11 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
         {
-            await _authService.ResetPasswordAsync(request, ct);
+            var userIdClaims = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedException("Token khong hop le!");
+
+            var userId = int.Parse(userIdClaims!);
+
+            await _authService.ResetPasswordAsync(request, userId, ct);
             return Ok(new ApiResponse<object>
             {
                 Success = true,
