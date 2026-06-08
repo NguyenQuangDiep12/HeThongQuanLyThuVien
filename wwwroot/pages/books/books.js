@@ -18,25 +18,42 @@ $(document).ready(function () {
 });
 
 function loadMeta() {
+    // GET /categories — trả về List<CategoryResponse> trực tiếp trong res.data
     CategoryAPI.getList(function (err, res) {
-        if (!err) categories = res.data || [];
-        let opts = '<option value="">-- Danh mục --</option>';
-        categories.forEach(function (c) { opts += '<option value="' + c.categoryId + '">' + escapeHtml(c.categoryName) + '</option>'; });
-        $('#filterCategory').html(opts);
-        $('#bookCategories').html(categories.map(function (c) {
-            return '<option value="' + c.categoryId + '">' + escapeHtml(c.categoryName) + '</option>';
-        }).join(''));
+        if (!err && res.data) {
+            categories = res.data;  // FIX: res.data là array trực tiếp, KHÔNG phải res.data.items
+        }
+        let filterOpts = '<option value="">-- Danh mục --</option>';
+        let formOpts = '';
+        categories.forEach(function (c) {
+            filterOpts += '<option value="' + c.categoryId + '">' + escapeHtml(c.categoryName) + '</option>';
+            formOpts += '<option value="' + c.categoryId + '">' + escapeHtml(c.categoryName) + '</option>';
+        });
+        $('#filterCategory').html(filterOpts);
+        $('#bookCategories').html(formOpts);
     });
-    AuthorAPI.getList({ page: 1, pageSize: 200 }, function (err, res) {
-        if (!err && res.data) authors = res.data.items || [];
+
+    // GET /authors — trả về List<AuthorResponse> trực tiếp trong res.data (không có pagination/items)
+    AuthorAPI.getList(null, function (err, res) {
+        if (!err && res.data) {
+            // FIX: GET /authors trả về List trực tiếp, KHÔNG phải paginated object với .items
+            authors = Array.isArray(res.data) ? res.data : (res.data.items || []);
+        }
         $('#bookAuthors').html(authors.map(function (a) {
             return '<option value="' + a.authorId + '">' + escapeHtml(a.authorName) + '</option>';
         }).join(''));
     });
-    PublisherAPI.getList({ page: 1, pageSize: 200 }, function (err, res) {
-        if (!err && res.data) publishers = res.data.items || [];
+
+    // GET /publishers — trả về List<PublisherResponse> trực tiếp trong res.data (không có pagination/items)
+    PublisherAPI.getList(null, function (err, res) {
+        if (!err && res.data) {
+            // FIX: GET /publishers trả về List trực tiếp, KHÔNG phải paginated object với .items
+            publishers = Array.isArray(res.data) ? res.data : (res.data.items || []);
+        }
         let opts = '<option value="">-- Chọn NXB --</option>';
-        publishers.forEach(function (p) { opts += '<option value="' + p.publisherId + '">' + escapeHtml(p.publisherName) + '</option>'; });
+        publishers.forEach(function (p) {
+            opts += '<option value="' + p.publisherId + '">' + escapeHtml(p.publisherName) + '</option>';
+        });
         $('#bookPublisher').html(opts);
     });
 }
@@ -60,17 +77,18 @@ function loadBooks() {
 function renderTable(items) {
     let html = '';
     items.forEach(function (b, i) {
-        html += '<tr><td>' + ((currentPage - 1) * pageSize + i + 1) + '</td>';
-        html += '<td>' + escapeHtml(b.title) + '</td><td>' + escapeHtml(b.isbn) + '</td>';
-        html += '<td>' + b.availableCopies + '/' + b.totalCopies + '</td>';
+        html += '<tr>';
+        html += '<td>' + ((currentPage - 1) * pageSize + i + 1) + '</td>';
+        html += '<td><div class="fw-semibold">' + escapeHtml(b.title) + '</div><small class="text-muted">' + escapeHtml(b.isbn) + '</small></td>';
+        html += '<td class="text-center"><span class="' + (b.availableCopies > 0 ? 'text-success' : 'text-danger') + ' fw-semibold">' + b.availableCopies + '</span><span class="text-muted">/' + b.totalCopies + '</span></td>';
         html += '<td class="text-center">';
-        html += '<a href="/pages/copies/index.html?bookId=' + b.bookId + '" class="btn btn-sm btn-outline-secondary" title="Bản sao"><i class="bi bi-layers"></i></a> ';
-        html += '<button class="btn btn-sm btn-outline-info btn-view" data-id="' + b.bookId + '"><i class="bi bi-eye"></i></button> ';
-        html += '<button class="btn btn-sm btn-outline-warning btn-edit" data-id="' + b.bookId + '"><i class="bi bi-pencil"></i></button>';
-        if (isAdmin()) html += ' <button class="btn btn-sm btn-outline-danger btn-delete" data-id="' + b.bookId + '" data-name="' + escapeHtml(b.title) + '"><i class="bi bi-trash"></i></button>';
+        html += '<a href="/pages/copies/index.html?bookId=' + b.bookId + '" class="btn btn-sm btn-outline-secondary me-1" title="Quản lý bản sao"><i class="bi bi-layers"></i></a>';
+        html += '<button class="btn btn-sm btn-outline-info me-1 btn-view" data-id="' + b.bookId + '" title="Xem chi tiết"><i class="bi bi-eye"></i></button>';
+        html += '<button class="btn btn-sm btn-outline-warning me-1 btn-edit" data-id="' + b.bookId + '" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>';
+        if (isAdmin()) html += '<button class="btn btn-sm btn-outline-danger btn-delete" data-id="' + b.bookId + '" data-name="' + escapeHtml(b.title) + '" title="Xóa"><i class="bi bi-trash"></i></button>';
         html += '</td></tr>';
     });
-    $('#tableBody').html(html || '<tr><td colspan="5" class="text-center text-muted">Không có dữ liệu</td></tr>');
+    $('#tableBody').html(html || '<tr><td colspan="4" class="text-center text-muted py-4">Không có dữ liệu</td></tr>');
 
     $('.btn-view').on('click', function () { window.location.href = '/pages/book-search/detail.html?bookId=' + $(this).data('id'); });
     $('.btn-edit').on('click', function () { openEditModal($(this).data('id')); });
@@ -95,7 +113,7 @@ function openEditModal(id) {
         $('#bookLanguage').val(b.language);
         $('#bookDescription').val(b.description);
         $('#bookCover').val(b.coverImage);
-        $('#bookPublisher').val(b.publisher ? b.publisher.publisherId : '');
+        if (b.publisher) $('#bookPublisher').val(b.publisher.publisherId);
         const authorIds = (b.authors || []).map(function (a) { return String(a.authorId); });
         const catIds = (b.categories || []).map(function (c) { return String(c.categoryId); });
         $('#bookAuthors').val(authorIds);
@@ -106,21 +124,37 @@ function openEditModal(id) {
 
 function saveBook() {
     clearFormErrors('bookForm');
+    const title = $('#bookTitle').val().trim();
+    const isbn = $('#bookIsbn').val().trim();
+    const publisherId = parseInt($('#bookPublisher').val());
+    const authorIds = $('#bookAuthors').val() ? $('#bookAuthors').val().map(Number) : [];
+    const categoryIds = $('#bookCategories').val() ? $('#bookCategories').val().map(Number) : [];
+
+    if (!title) { showFieldError('bookTitle', 'Vui lòng nhập tên sách'); return; }
+    if (!isbn) { showFieldError('bookIsbn', 'Vui lòng nhập ISBN'); return; }
+    if (!publisherId) { showToast('error', 'Vui lòng chọn nhà xuất bản'); return; }
+    if (!authorIds.length) { showToast('error', 'Vui lòng chọn ít nhất 1 tác giả'); return; }
+    if (!categoryIds.length) { showToast('error', 'Vui lòng chọn ít nhất 1 danh mục'); return; }
+
     const data = {
-        title: $('#bookTitle').val().trim(),
-        isbn: $('#bookIsbn').val().trim(),
+        title: title,
+        isbn: isbn,
         language: $('#bookLanguage').val().trim() || 'vi',
-        description: $('#bookDescription').val().trim(),
+        description: $('#bookDescription').val().trim() || '',
         coverImage: $('#bookCover').val().trim() || 'https://via.placeholder.com/200x300',
-        publisherId: parseInt($('#bookPublisher').val()),
-        authorIds: $('#bookAuthors').val() ? $('#bookAuthors').val().map(Number) : [],
-        categoryIds: $('#bookCategories').val() ? $('#bookCategories').val().map(Number) : []
+        publisherId: publisherId,
+        authorIds: authorIds,
+        categoryIds: categoryIds
     };
-    if (!data.title) { showFieldError('bookTitle', 'Vui lòng nhập tên sách'); return; }
+
     showLoading('btnSaveBook');
     const cb = function (err) {
         hideLoading('btnSaveBook');
-        if (err) { if (err.errors) showApiFieldErrors(err.errors); else showToast('error', err.message); return; }
+        if (err) {
+            if (err.errors) showApiFieldErrors(err.errors);
+            else showToast('error', err.message);
+            return;
+        }
         showToast('success', editBookId ? 'Cập nhật thành công' : 'Thêm sách thành công');
         bootstrap.Modal.getInstance('#bookModal').hide();
         loadBooks();

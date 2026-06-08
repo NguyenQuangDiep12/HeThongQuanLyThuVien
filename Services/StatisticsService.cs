@@ -42,12 +42,15 @@ namespace HeThongQuanLyThuVien.Services
         {
             var now = DateTime.UtcNow;
 
-            return await _context.BorrowRecords
+            var records = await _context.BorrowRecords
                 .AsNoTracking()
                 .Include(br => br.Reader)
                 .Where(br =>
                     br.Status == BorrowStatus.BORROWING &&
                     br.DueDate < now)
+                .ToListAsync(ct);
+
+            return records
                 .Select(br => new OverdueBorrowResponse
                 {
                     BorrowId = br.BorrowId,
@@ -56,7 +59,7 @@ namespace HeThongQuanLyThuVien.Services
                     OverdueDays = (int)(now - br.DueDate).TotalDays
                 })
                 .OrderByDescending(x => x.OverdueDays)
-                .ToListAsync(ct);
+                .ToList();
         }
         // GET /stats/top-books — Sach duoc muon nhieu nhat
         public async Task<List<TopBookResponse>> GetTopBooksAsync(int top = 10, CancellationToken ct = default)
