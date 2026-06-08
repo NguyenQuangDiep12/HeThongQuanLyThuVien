@@ -62,7 +62,7 @@ namespace HeThongQuanLyThuVien.Controllers
         // PUT /api/book-copies/:id  (Staff/Admin - cap nhat toan bo thong tin ban sao)
         [HttpPut("{id:int}")]
         [Authorize(Roles = "STAFF,ADMIN")]
-        public async Task<IActionResult> UpdateBookCopy([FromRoute] int id, [FromQuery] UpdateBookCopyRequest request, CancellationToken ct)
+        public async Task<IActionResult> UpdateBookCopy([FromRoute] int id, [FromBody] UpdateBookCopyRequest request, CancellationToken ct)
         {
             await _bookCopyService.UpdateBookCopyAsync(id, request, ct);
             return Ok(new ApiResponse<object>

@@ -125,9 +125,10 @@ namespace HeThongQuanLyThuVien.Services
                 PageSize = request.PageSize
             };
         }
-        // GET /borrow-records/:id | GET | /borrow-records/:id | Chi tiết phiếu mượn | Owner/Staff/Admin |
+        // GET /borrow-records/:id | GET | /borrow-records/:id | Chi tiết phiếu mượn | Staff/Admin |
         public async Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, CancellationToken ct = default)
         {
+
             var record = await _context.BorrowRecords.AsNoTracking().Where(br => br.BorrowId == borrowId)
                 .Select(br => new BorrowRecordDetailResponse
                 {
@@ -157,16 +158,17 @@ namespace HeThongQuanLyThuVien.Services
                             Status = bd.Status
                         }).ToList()
                 }).FirstOrDefaultAsync(ct);
+
             if (record is null)
             {
                 throw new NotFoundException("Phiếu mượn không tồn tại!");
             }
+
             return record;
         }
         // POST /borrow-records | POST | /borrow-records | Tạo phiếu mượn mới | Staff/Admin |
         public async Task<BorrowRecordDetailResponse> CreateBorrowRecordAsync(int staffId, CreateBorrowRecordRequest request, CancellationToken ct = default)
         {
-            Console.WriteLine($"[DEBUG] request.BorrowType = {request.BorrowType} (int: {(int)request.BorrowType})");
             // Kiểm tra người dùng
             var reader = await _context.Users.Include(u => u.LibraryCard).FirstOrDefaultAsync(u => u.UserId == request.ReaderId, ct);
             if (reader == null)
@@ -188,6 +190,16 @@ namespace HeThongQuanLyThuVien.Services
             {
                 throw new ForbiddenException("Thẻ thư viện đã hết hạn!");
             }
+
+            bool hasUnpaidFine = await _context.Fines.AnyAsync(f =>
+                f.BorrowDetail.BorrowRecord.ReaderId == request.ReaderId &&
+                f.PaymentStatus == PaymentStatus.PENDING, ct);
+
+            if (hasUnpaidFine)
+            {
+                throw new ForbiddenException("Độc giả còn phiếu phạt chưa thanh toán!");
+            }
+
             // Kiểm tra số lượng sách mượn
             if (request.CopyIds.Count > _librarySettings.MaxBooksPerBorrow)
             {
@@ -304,8 +316,8 @@ namespace HeThongQuanLyThuVien.Services
                             {
                                 BorrowDetailId = detail.BorrowDetailId,
                                 FineType = FineType.DAMAGED,
-                                Amount = returnItem!.FineAmount ?? 0,
-                                Reason = returnItem.FineReason ?? "Sách bị hư hỏng",
+                                Amount = returnItem?.FineAmount ?? 0,
+                                Reason = returnItem?.FineReason ?? "Sách bị hư hỏng",
                                 PaymentStatus = PaymentStatus.PENDING,
                                 CreatedAt = now
                             }, ct);
@@ -318,8 +330,8 @@ namespace HeThongQuanLyThuVien.Services
                             {
                                 BorrowDetailId = detail.BorrowDetailId,
                                 FineType = FineType.LOST,
-                                Amount = returnItem!.FineAmount ?? 0,
-                                Reason = returnItem.FineReason ?? "Sách bị mất",
+                                Amount = returnItem?.FineAmount ?? 0,
+                                Reason = returnItem?.FineReason ?? "Sách bị mất",
                                 PaymentStatus = PaymentStatus.PENDING,
                                 CreatedAt = now
                             }, ct);
@@ -349,22 +361,25 @@ namespace HeThongQuanLyThuVien.Services
             record.ReturnedDate = now;
             await _context.SaveChangesAsync(ct);
         }
-        // PATCH /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin
-        public async Task CancelBorrowRecordAsync(int borrowId, int currentUserId, string currentRole, CancellationToken ct = default)
+        // PATCH /borrow-records/:id/cancel | Hủy phiếu mượn | Staff/Admin
+        public async Task CancelBorrowRecordAsync(int borrowId, CancellationToken ct = default)
         {
             var record = await _context.BorrowRecords
+                .Include(br => br.BorrowDetails)
+                    .ThenInclude(bd => bd.BookCopy)
                 .FirstOrDefaultAsync(br => br.BorrowId == borrowId, ct);
 
-            if (record is null)
-                throw new NotFoundException("Phiếu mượn không tồn tại!");
+            if (record == null) throw new NotFoundException("Phiếu mượn không tồn tại!");
 
-            // Chỉ được hủy khi PENDING
-            if (record.Status != BorrowStatus.PENDING)
-                throw new BadRequestException("Chỉ có thể hủy phiếu khi chưa được duyệt!");
+            // Chỉ hủy được khi đang BORROWING (nhập nhầm) — không cho hủy RETURNED/OVERDUE
+            if (record.Status != BorrowStatus.BORROWING) throw new BadRequestException("Chỉ có thể hủy phiếu đang mượn!");
 
-            // Reader chỉ được hủy phiếu của mình
-            if (currentRole == RoleName.READER.ToString() && record.ReaderId != currentUserId)
-                throw new ForbiddenException("Bạn không có quyền hủy phiếu này!");
+
+            // Hoàn trả trạng thái các bản sao về AVAILABLE
+            foreach (var detail in record.BorrowDetails)
+            {
+                detail.BookCopy.Status = BookCopyStatus.AVAILABLE;
+            }
 
             record.Status = BorrowStatus.CANCELLED;
             await _context.SaveChangesAsync(ct);

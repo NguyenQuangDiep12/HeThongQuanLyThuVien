@@ -3,7 +3,7 @@
     public record AuthorResponse(
         int AuthorId, 
         string AuthorName, 
-        string Biography, 
-        string AuthorUrl
+        string? Biography, 
+        string? AuthorUrl
     );
 }

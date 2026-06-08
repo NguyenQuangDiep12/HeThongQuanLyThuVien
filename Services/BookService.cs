@@ -156,7 +156,7 @@ namespace HeThongQuanLyThuVien.Services
             book.Title = request.Title;
             book.ISBN = request.ISBN;
             book.PublisherId = request.PublisherId;
-            book.Language = request.Language;
+            book.Language = request.Language ?? "EN";
             book.Description = request.Description;
             book.CoverImage = request.CoverImage;
             book.UpdatedAt = DateTime.UtcNow;

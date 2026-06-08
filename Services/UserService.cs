@@ -154,7 +154,7 @@ namespace HeThongQuanLyThuVien.Services
                     Role = u.Role.RoleName.ToString(), // Dung de check quyen ben duoi
                     Status = u.Status.ToString(),
                     CardStatus = u.LibraryCard != null ? u.LibraryCard.Status.ToString() : string.Empty,
-                    LibraryCardCode = u.LibraryCard != null ? u.LibraryCard.LibraryCardCode : null,
+                    LibraryCardCode = u.LibraryCard != null ? u.LibraryCard.LibraryCardCode : "",
                     CreatedAt = u.CreatedAt
                 })
                 .FirstOrDefaultAsync(ct);

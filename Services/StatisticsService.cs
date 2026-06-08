@@ -53,7 +53,7 @@ namespace HeThongQuanLyThuVien.Services
                     BorrowId = br.BorrowId,
                     ReaderName = br.Reader.FullName,
                     DueDate = br.DueDate,
-                    OverdueDays = (int)(now - br.DueDate).TotalDays
+                    OverdueDays = EF.Functions.DateDiffDay(br.DueDate, now),
                 })
                 .OrderByDescending(x => x.OverdueDays)
                 .ToListAsync(ct);

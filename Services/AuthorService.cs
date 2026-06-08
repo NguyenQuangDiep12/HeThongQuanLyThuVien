@@ -11,14 +11,11 @@ namespace HeThongQuanLyThuVien.Services
     public class AuthorService : IAuthorService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IHttpContextAccessor _contextAccessor;
 
         public AuthorService(
-            ApplicationDbContext context,
-            IHttpContextAccessor contextAccessor)
+            ApplicationDbContext context)
         {
             _context = context;
-            _contextAccessor = contextAccessor;
         }
         // | GET | /authors/:id | Chi tiết tác giả | Public |
         public async Task<AuthorResponse> GetAuthorByIdAsync(int id, CancellationToken ct = default)

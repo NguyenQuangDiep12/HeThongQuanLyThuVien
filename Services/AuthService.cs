@@ -154,7 +154,7 @@ namespace HeThongQuanLyThuVien.Services
             await _mailService.SendEmailAsync(user.Email, "Mật khẩu mới", $"Mật khẩu mới của bạn là: {newPassword}");
         }
 
-        public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+        public async Task ResetPasswordAsync(int userId, ResetPasswordRequest request, CancellationToken ct = default)
         {
             // 3a. Xac nhan mat khau khong khop
             if(request.Password != request.ConfirmPassword)
@@ -162,15 +162,8 @@ namespace HeThongQuanLyThuVien.Services
                 throw new ConflictException("Xac nhan mat khau khong khop");
             }
 
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if(userId == null)
-            {
-                throw new UnauthorizedException("nguoi dung ko duoc uy quyen");
-            }
-
             var PasswordOfUser = await _context.Users
-                .Where(u => u.UserId == int.Parse(userId))
+                .Where(u => u.UserId == userId)
                 .Select(u => u.PasswordHash)
                 .FirstOrDefaultAsync(ct);
             
@@ -189,7 +182,7 @@ namespace HeThongQuanLyThuVien.Services
             var NewPasswordHashed = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             await _context.Users
-                .Where(u => u.UserId == int.Parse(userId))
+                .Where(u => u.UserId == (userId))
                 .ExecuteUpdateAsync(setters =>
                     setters.SetProperty(
                         f => f.PasswordHash, 

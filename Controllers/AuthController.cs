@@ -4,6 +4,7 @@ using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using HeThongQuanLyThuVien.Exceptions;
 
 namespace HeThongQuanLyThuVien.Controllers
 {
@@ -12,10 +13,14 @@ namespace HeThongQuanLyThuVien.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public AuthController(IAuthService authService)
+        public AuthController(
+            IAuthService authService,
+            IHttpContextAccessor contextAccessor)
         {
             _authService = authService;
+            _contextAccessor = contextAccessor;
         }
 
         // POST /api/auth/register
@@ -73,12 +78,17 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // PUT /api/auth/reset-password  (Owner)
+        // PUT /api/auth/reset-password  (Owner/STAFF/ADMIN)
         [HttpPut("reset-password")]
         [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
         {
-            await _authService.ResetPasswordAsync(request, ct);
+
+            var userIdClaims = (_contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value) ?? throw new UnauthorizedException("Khong tim thay userId");
+
+            var userId = int.Parse(userIdClaims);
+
+            await _authService.ResetPasswordAsync(userId, request, ct);
             return Ok(new ApiResponse<object>
             {
                 Success = true,

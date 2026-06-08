@@ -188,13 +188,13 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(); // cho phep su dung cac file tinh html, css, js o wwwroot cua du an
 
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+app.MapControllers(); // Cau hinh cac routing khac
 
 app.Run();

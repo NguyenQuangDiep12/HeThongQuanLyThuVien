@@ -28,13 +28,12 @@ namespace HeThongQuanLyThuVien.Services
 
 
             // ma xac thuc tinh hop le cho tai khoan gmail: nguyenquangdiepnx1@gmail.com
-            string AppPasswordVerified = _configuration["Mail:AppPassword"]!;
 
             smtp.UseDefaultCredentials = false;
 
             smtp.Credentials = new NetworkCredential(
-                "nguyenquangdiepnx1@gmail.com",
-                $"{AppPasswordVerified}"
+                _configuration["Mail:From"],
+                _configuration["Mail:AppPassword"]
                 );
 
             smtp.EnableSsl = true;

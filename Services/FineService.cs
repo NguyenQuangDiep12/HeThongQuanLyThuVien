@@ -133,7 +133,7 @@ namespace HeThongQuanLyThuVien.Services
             bool fineExists = await _context.Fines.AnyAsync(f => f.BorrowDetailId == request.BorrowDetailId && f.FineType == request.FineType, ct);
             if (fineExists)
             {
-                throw new BadRequestException( "Loại phiếu phạt này không tồn tại!");
+                throw new BadRequestException("Phiếu phạt đã tồn tại!");
             }
             switch (request.FineType)
             {
@@ -148,6 +148,9 @@ namespace HeThongQuanLyThuVien.Services
                     }
                     break;
                 case FineType.DAMAGED:
+                    borrowDetail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
+                    break;
+                case FineType.LOST:
                     borrowDetail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
                     break;
                 default:
@@ -170,10 +173,8 @@ namespace HeThongQuanLyThuVien.Services
         public async Task PayFineAsync(int fineId, CancellationToken ct = default)
         {
             var fine = await _context.Fines.FirstOrDefaultAsync(f => f.FineId == fineId, ct);
-            if (fine is null)
-                throw new NotFoundException("Phiếu mượn không tồn tại!");
-            if (fine.PaymentStatus == PaymentStatus.PAID)
-                throw new BadRequestException("Phiếu phạt đã được thanh toán!");
+            if (fine is null) throw new NotFoundException("Phiếu mượn không tồn tại!");
+            if (fine.PaymentStatus == PaymentStatus.PAID) throw new BadRequestException("Phiếu phạt đã được thanh toán!");
             fine.PaymentStatus = PaymentStatus.PAID;
             fine.PaidAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
