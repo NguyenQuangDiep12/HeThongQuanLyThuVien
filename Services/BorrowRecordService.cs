@@ -171,9 +171,9 @@ namespace HeThongQuanLyThuVien.Services
         // POST /borrow-records | POST | /borrow-records | Tạo phiếu mượn mới | Staff/Admin |
         public async Task<BorrowRecordDetailResponse> CreateBorrowRecordAsync(int staffId, CreateBorrowRecordRequest request, CancellationToken ct = default)
         {
-            Console.WriteLine($"[DEBUG] request.BorrowType = {request.BorrowType} (int: {(int)request.BorrowType})");
             // Kiểm tra người dùng
             var reader = await _context.Users.Include(u => u.LibraryCard).FirstOrDefaultAsync(u => u.UserId == request.ReaderId, ct);
+
             if (reader == null)
             {
                 throw new NotFoundException("Người dùng không tồn tại!");
@@ -260,7 +260,7 @@ namespace HeThongQuanLyThuVien.Services
                 copy.Status = BookCopyStatus.BORROWED;
             }
             await _context.SaveChangesAsync(ct);
-            return await GetBorrowRecordByIdAsync(borrowRecord.BorrowId, ct);
+            return await GetBorrowRecordByIdAsync(borrowRecord.BorrowId, staffId, "STAFF",ct);
         }
         // PATCH /borrow-records/:id/return | PATCH | /borrow-records/:id/return | Xác nhận trả sách | Staff/Admin |
         public async Task ConfirmReturnAsync(int borrowId, ConfirmReturnRequest request, CancellationToken ct = default)
@@ -344,18 +344,19 @@ namespace HeThongQuanLyThuVien.Services
             // Phạt quá hạn
             if (now > record.DueDate)
             {
-                foreach (var detail in record.BorrowDetails)
+                foreach (var detail in record.BorrowDetails
+                    .Where(d => d.Status != BorrowDetailStatus.LOST
+                             && d.Status != BorrowDetailStatus.DAMAGED))
                 {
-                    await _context.Fines.AddAsync(
-                        new Fine
-                        {
-                            BorrowDetailId = detail.BorrowDetailId,
-                            FineType = FineType.OVERDUE,
-                            Amount = overDueDays * _librarySettings.OverdueFinePerDay,
-                            Reason = $"Trả quá hạn {overDueDays} ngày",
-                            PaymentStatus = PaymentStatus.PENDING,
-                            CreatedAt = now
-                        }, ct);
+                    await _context.Fines.AddAsync(new Fine
+                    {
+                        BorrowDetailId = detail.BorrowDetailId,
+                        FineType = FineType.OVERDUE,
+                        Amount = overDueDays * _librarySettings.OverdueFinePerDay,
+                        Reason = $"Trả quá hạn {overDueDays} ngày",
+                        PaymentStatus = PaymentStatus.PENDING,
+                        CreatedAt = now
+                    }, ct);
                 }
             }
 

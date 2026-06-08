@@ -34,7 +34,7 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         /// Xem chi tiết phiếu mượn
         /// GET /borrow-records/:id
         /// </summary>
-        Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, CancellationToken ct = default);
+        Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, int currentUserId, string currentRole,CancellationToken ct = default);
         /// <summary>
         /// Staff tạo phiếu mượn
         /// POST /borrow-records
@@ -63,6 +63,6 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         /// Hủy phiếu mượn
         /// PATCH /borrow-records/:id/cancel
         /// </summary>
-        Task CancelBorrowRecordAsync(int borrowId, CancellationToken ct = default);
+        Task CancelBorrowRecordAsync(int borrowId,CancellationToken ct = default);
     }
 }

@@ -52,7 +52,11 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> GetDetailBorrowRecord([FromRoute] int id, CancellationToken ct)
         {
-            var result = await _borrowRecordService.GetBorrowRecordByIdAsync(id, ct);
+
+            int currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            string currentRole = User.FindFirst(ClaimTypes.Role)!.Value;
+
+            var result = await _borrowRecordService.GetBorrowRecordByIdAsync(id, currentUserId, currentRole, ct);
             return Ok(new ApiResponse<BorrowRecordDetailResponse>
             {
                 Success = true,
@@ -105,14 +109,12 @@ namespace HeThongQuanLyThuVien.Controllers
             });
         }
 
-        // PATCH /api/borrow-records/:id/cancel  (Owner/Staff/Admin huy phieu muon) | PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | Owner/Staff/Admin |
+        // PATCH /api/borrow-records/:id/cancel  (Staff/Admin huy phieu muon) | PATCH | /borrow-records/:id/cancel | Hủy phiếu mượn | /Staff/Admin |
         [HttpPatch("{id:int}/cancel")]
-        [Authorize(Roles = "READER,STAFF,ADMIN")]
-        public async Task<IActionResult> CancelLoanPass([FromRoute] int id, CancellationToken ct)
+        [Authorize(Roles = "STAFF,ADMIN")]
+        public async Task<IActionResult> CancelBorrowRecord([FromRoute] int id, CancellationToken ct)
         {
-            int currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            string currentRole = User.FindFirst(ClaimTypes.Role)!.Value;
-            await _borrowRecordService.CancelBorrowRecordAsync(id, currentUserId, currentRole, ct);
+            await _borrowRecordService.CancelBorrowRecordAsync(id, ct);
             return Ok(new ApiResponse<object>
             {
                 Success = true,
