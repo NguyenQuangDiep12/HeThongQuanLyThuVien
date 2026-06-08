@@ -12,14 +12,12 @@ namespace HeThongQuanLyThuVien.Services
     public class CategoryService : ICategoryService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IHttpContextAccessor _contextAccessor;
 
         public CategoryService(
             ApplicationDbContext context,
             IHttpContextAccessor contextAccessor)
         {
             _context = context;
-            _contextAccessor = contextAccessor;
         }
 
         public async Task<CategoryResponse> GetCategoryByIdAsync(int id, CancellationToken ct = default)

@@ -11,14 +11,12 @@ namespace HeThongQuanLyThuVien.Services
     public class PublisherService : IPublisherService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IHttpContextAccessor _contextAccessor;
 
         public PublisherService(
             ApplicationDbContext context,
             IHttpContextAccessor contextAccessor)
         {
             _context = context;
-            _contextAccessor = contextAccessor;
         }
 
         public async Task<PublisherResponse> GetPublisherByIdAsync(int id, CancellationToken ct = default)

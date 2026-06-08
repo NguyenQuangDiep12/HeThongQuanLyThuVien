@@ -133,13 +133,13 @@ namespace HeThongQuanLyThuVien.Services
             bool fineExists = await _context.Fines.AnyAsync(f => f.BorrowDetailId == request.BorrowDetailId && f.FineType == request.FineType, ct);
             if (fineExists)
             {
-                throw new BadRequestException( "Loại phiếu phạt này không tồn tại!");
+                throw new BadRequestException("Loại phiếu phạt này đã tồn tại cho chi tiết mượn này!");
             }
             switch (request.FineType)
             {
                 case FineType.OVERDUE:
                     if (borrowDetail.ReturnedAt == null)
-                    {
+                    {  
                         throw new BadRequestException("Sách chưa được trả!");
                     }
                     if (borrowDetail.ReturnedAt.Value <= borrowDetail.BorrowRecord.DueDate)
