@@ -17,7 +17,6 @@ namespace HeThongQuanLyThuVien.Services
 
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
-        private readonly IHttpContextAccessor _contextAccessor;
         private readonly LibrarySettings _librarySettings;
 
         public BorrowRecordService(
@@ -28,7 +27,6 @@ namespace HeThongQuanLyThuVien.Services
         {
             _context = context;
             _notificationService = notificationService;
-            _contextAccessor = contextAccessor;
             _librarySettings = librarySettings.Value;
         }
 
@@ -80,10 +78,9 @@ namespace HeThongQuanLyThuVien.Services
         }
 
         // GET /users/:id/borrow-records | GET | /users/:id/borrow-records | Lịch sử mượn sách của người dùng | Owner/Staff/Admin |
-        public async Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(int userId, PaginationRequest request, CancellationToken ct = default)
+        public async Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(int userId, int currentUserId, string currentRole,PaginationRequest request, CancellationToken ct = default)
         {
-            int currentUserId = int.Parse(_contextAccessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            string currentRole = _contextAccessor.HttpContext!.User.FindFirst(ClaimTypes.Role)!.Value;
+
             IQueryable<BorrowRecord> query = _context.BorrowRecords.AsNoTracking();
             // Reader chỉ xem của chính mình
             if (currentRole == RoleName.READER.ToString())
@@ -415,7 +412,15 @@ namespace HeThongQuanLyThuVien.Services
             {
                 throw new NotFoundException("Phiếu mượn không tồn tại!");
             }
+            // kiem tra da gui yeu cau gia han chua?
+            var hasPendingRequest = await _context.Notifications
+                .AnyAsync(n => n.Title == "Yêu cầu gia hạn phiếu mượn" && n.Content.Contains(record.BorrowCode) && !n.IsRead, ct);
+            if (hasPendingRequest)
+            {
+                throw new BadRequestException("Yêu cầu gia hạn đang chờ thủ thư xử lý!");
+            }
             ValidateExtensionEligibility(record);
+
             await _notificationService.SendToStaffAsync($"Yêu cầu gia hạn phiếu mượn ", $"{record.BorrowCode} từ người dùng {readerId}.", ct);
         }
 
@@ -430,6 +435,16 @@ namespace HeThongQuanLyThuVien.Services
             ValidateExtensionEligibility(record);
             record.ExtensionCount += 1;
             record.DueDate = record.DueDate.AddDays(_librarySettings.ExtensionDays);
+
+            await _context.Notifications
+                .Where(n => n.Title == "Yêu cầu gia hạn phiếu mượn" &&
+                       n.Content.Contains(record.BorrowCode) &&
+                       !n.IsRead)
+                .ExecuteUpdateAsync(setters =>
+                    setters
+                        .SetProperty(x => x.IsRead, true)
+                        .SetProperty(x => x.ReadAt, DateTime.UtcNow)
+                    , ct);
             await _context.SaveChangesAsync(ct);
             // Gửi thông báo
             await _notificationService.SendAsync(record.ReaderId,"Gia hạn sách thành công",$"Phiếu mượn {record.BorrowCode} " + $"đã được gia hạn. " + $"Hạn trả mới: {record.DueDate:dd/MM/yyyy}.", ct);

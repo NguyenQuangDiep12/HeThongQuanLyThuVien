@@ -11,6 +11,7 @@ namespace HeThongQuanLyThuVien.Models
         public DateTime? BorrowDate { get; set; }
         public DateTime DueDate { get; set; }
         public DateTime? ReturnedDate { get; set; }
+        public ExtensionRequestStatus ExtensionRequestStatus { get; set; }
         public int ExtensionCount { get; set; }
         public BorrowType BorrowType { get; set; }
         public BorrowStatus Status { get; set; }

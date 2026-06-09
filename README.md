@@ -160,6 +160,7 @@
 | GET | /notifications | Danh sách thông báo | Owner |
 | GET | /notifications/:id | xem chi tiết thông báo | Owner | 
 | PATCH | /notifications/read-all | Đánh dấu tất cả thông báo là đã đọc | Owner |
+| PATCH | /notifications/:id/read | Danh dau thong bao chi tiet da doc | Owner |
 
 </details>
 ---

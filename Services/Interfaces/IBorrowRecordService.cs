@@ -29,7 +29,7 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
         /// Staff/Admin xem lịch sử của user bất kỳ
         /// GET /users/:id/borrow-records
         /// </summary>
-        Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(int userId, PaginationRequest request, CancellationToken ct = default);
+        Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(int userId, int currentUserId, string currentRole, PaginationRequest request, CancellationToken ct = default);
         /// <summary>
         /// Xem chi tiết phiếu mượn
         /// GET /borrow-records/:id

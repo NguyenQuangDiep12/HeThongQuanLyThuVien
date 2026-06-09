@@ -12,10 +12,14 @@ namespace HeThongQuanLyThuVien.Controllers
     public class BorrowRecordsController : ControllerBase
     {
         private readonly IBorrowRecordService _borrowRecordService;
+        private readonly IHttpContextAccessor _contextAccessor;
 
-        public BorrowRecordsController(IBorrowRecordService borrowRecordService)
+        public BorrowRecordsController(
+            IBorrowRecordService borrowRecordService,
+            IHttpContextAccessor contextAccessor)
         {
             _borrowRecordService = borrowRecordService;
+            _contextAccessor = contextAccessor;
         }
 
         // GET /api/borrow-records  (Staff/Admin) | GET | /borrow-records | Danh sách phiếu mượn | Staff/Admin |
@@ -38,7 +42,10 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> GetUserBorrowRecords([FromRoute] int id, [FromQuery] PaginationRequest request, CancellationToken ct)
         {
-            var result = await _borrowRecordService.GetUserBorrowRecordsAsync(id, request, ct);
+            int currentUserId = int.Parse(_contextAccessor.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            string currentRole = _contextAccessor.HttpContext!.User.FindFirst(ClaimTypes.Role)!.Value;
+
+            var result = await _borrowRecordService.GetUserBorrowRecordsAsync(id, currentUserId, currentRole,request, ct);
             return Ok(new ApiResponse<PaginationResponse<BorrowRecordSummaryResponse>>
             {
                 Success = true,

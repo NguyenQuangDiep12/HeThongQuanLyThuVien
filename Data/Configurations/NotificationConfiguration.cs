@@ -29,6 +29,12 @@ namespace HeThongQuanLyThuVien.Data.Configurations
                 .HasColumnName("content")
                 .HasColumnType("nvarchar(max)");
 
+            builder.Property(n => n.Type)
+                .HasColumnName("type")
+                .IsRequired()
+                .HasMaxLength(30)
+                .HasConversion<string>();
+
             builder.Property(n => n.IsRead)
                 .HasColumnName("is_read")
                 .IsRequired()

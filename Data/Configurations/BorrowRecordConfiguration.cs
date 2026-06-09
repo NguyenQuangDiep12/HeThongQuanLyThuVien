@@ -43,6 +43,12 @@ namespace HeThongQuanLyThuVien.Data.Configurations
             builder.Property(br => br.ReturnedDate)
                 .HasColumnName("returned_date");
 
+            builder.Property(br => br.ExtensionRequestStatus)
+                .HasColumnName("extension_request_status")
+                .IsRequired()
+                .HasMaxLength(30)
+                .HasConversion<string>();
+
             builder.Property(br => br.ExtensionCount)
                 .HasColumnName("extension_count")
                 .IsRequired()
