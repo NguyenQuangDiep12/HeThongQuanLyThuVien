@@ -133,10 +133,10 @@ namespace HeThongQuanLyThuVien.Controllers
         // PATCH /api/borrow-records/:id/extend  (Staff/Admin xac nhan gia han) | PATCH | /borrow-records/:id/extend | Gia hạn sách | Staff/Admin |
         [HttpPatch("{id:int}/extend")]
         [Authorize(Roles = "STAFF,ADMIN")]
-        public async Task<IActionResult> ConfirmBookRenewal([FromRoute] int id, CancellationToken ct)
+        public async Task<IActionResult> ConfirmBookRenewal([FromRoute] int id, [FromBody] ProcessExtensionRequest request ,CancellationToken ct)
         {
-            int staffId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            await _borrowRecordService.ConfirmExtensionAsync(id, staffId, ct);
+
+            await _borrowRecordService.ConfirmExtensionAsync(id, request ,ct);
             return Ok(new ApiResponse<object>
             {
                 Success = true,

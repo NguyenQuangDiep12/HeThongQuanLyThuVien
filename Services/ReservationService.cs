@@ -4,23 +4,26 @@ using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.Exceptions;
 using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
+using HeThongQuanLyThuVien.Options;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace HeThongQuanLyThuVien.Services
 {
     public class ReservationService : IReservationService
     {
-        private const int BorrowDurationDays = 7;
-
+        private readonly LibrarySettings _librarySettings;
         private readonly ApplicationDbContext _context;
         private readonly INotificationService _notificationService;
         public ReservationService(
             ApplicationDbContext context,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IOptions<LibrarySettings> librarySettings)
         {
             _context = context;
             _notificationService = notificationService;
+            _librarySettings = librarySettings.Value;
         }
 
         // GET /reservations — Staff/Admin xem danh sach dat truoc
@@ -192,7 +195,7 @@ namespace HeThongQuanLyThuVien.Services
                 ApprovedBy = staffId,
                 BorrowCode = GenerateBorrowCode(),
                 BorrowDate = DateTime.UtcNow,
-                DueDate = DateTime.UtcNow.AddDays(BorrowDurationDays),
+                DueDate = DateTime.UtcNow.AddDays(_librarySettings.BorrowDurationDays),
                 ExtensionCount = 0,
                 BorrowType = BorrowType.TAKEHOME,
                 Status = BorrowStatus.BORROWING,
@@ -214,7 +217,12 @@ namespace HeThongQuanLyThuVien.Services
             reservation.UpdatedAt = DateTime.UtcNow;
             await _context.BorrowRecords.AddAsync(borrowRecord, ct);
             await _context.SaveChangesAsync(ct);
-            await _notificationService.SendAsync(reservation.UserId,"Dat truoc sach thanh cong",$"Sach {reservation.Book.Title} da duoc chuyen thanh phieu muon {borrowRecord.BorrowCode}. Han tra: {borrowRecord.DueDate:yyyy:MM:dd}",ct);
+            await _notificationService.SendAsync(
+                reservation.UserId,
+                NotificationType.SYSTEMANNOUNCEMENT,
+                "Đặt trước sách thành công",
+                $"Sách {reservation.Book.Title} đã được chuyển thành phiếu mượn {borrowRecord.BorrowCode}. Hạn trả: {borrowRecord.DueDate:dd/MM/yyyy}.",
+                ct);
             return borrowRecord.BorrowId; // tra ve BorrowId 
         }
         // private function helper

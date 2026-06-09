@@ -16,53 +16,47 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
     /// - Thời hạn mượn: 7 ngày
     /// - Gia hạn tối đa 2 lần
     /// - Mỗi lần gia hạn thêm 3 ngày
+    ///
+    /// Flow gia hạn:
+    /// Reader gửi => BorrowRecord.ExtensionRequestStatus = PENDING
+    /// Staff duyệt => APPROVED + Notification => Reader
+    /// Staff từ chối => REJECTED + Notification => Reader
     /// </summary>
     public interface IBorrowRecordService
     {
-        /// <summary>
-        /// Staff/Admin xem danh sách phiếu mượn
-        /// GET /borrow-records
-        /// </summary>
+        // GET /borrow-records — Staff/Admin xem danh sách
         Task<PaginationResponse<BorrowRecordSummaryResponse>> GetBorrowRecordsAsync(BorrowRecordQueryRequest request, CancellationToken ct = default);
-        /// <summary>
-        /// Reader xem lịch sử mượn của chính mình
-        /// Staff/Admin xem lịch sử của user bất kỳ
-        /// GET /users/:id/borrow-records
-        /// </summary>
+
+        // GET /users/:id/borrow-records
         Task<PaginationResponse<BorrowRecordSummaryResponse>> GetUserBorrowRecordsAsync(int userId, int currentUserId, string currentRole, PaginationRequest request, CancellationToken ct = default);
-        /// <summary>
-        /// Xem chi tiết phiếu mượn
-        /// GET /borrow-records/:id
-        /// </summary>
-        Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, int currentUserId, string currentRole,CancellationToken ct = default);
-        /// <summary>
-        /// Staff tạo phiếu mượn
-        /// POST /borrow-records
-        /// </summary>
+
+        // GET /borrow-records/:id
+        Task<BorrowRecordDetailResponse> GetBorrowRecordByIdAsync(int borrowId, int currentUserId, string currentRole, CancellationToken ct = default);
+
+        // POST /borrow-records
         Task<BorrowRecordDetailResponse> CreateBorrowRecordAsync(int staffId, CreateBorrowRecordRequest request, CancellationToken ct = default);
 
+        // PATCH /borrow-records/:id/return
+        Task ConfirmReturnAsync(int borrowId, ConfirmReturnRequest request, CancellationToken ct = default);
+
+        // PATCH /borrow-records/:id/cancel
+        Task CancelBorrowRecordAsync(int borrowId, CancellationToken ct = default);
+
         /// <summary>
-        /// Reader gửi yêu cầu gia hạn
+        /// Reader gửi yêu cầu gia hạn.
+        /// Chỉ cập nhật ExtensionRequestStatus = PENDING trên BorrowRecord.
+        /// Không tạo Notification, không gọi SendToStaffAsync.
         /// POST /borrow-records/:id/extension-requests
         /// </summary>
         Task SubmitExtensionRequestAsync(int borrowId, int readerId, CancellationToken ct = default);
 
         /// <summary>
-        /// Staff xác nhận gia hạn
+        /// Staff/Admin duyệt yêu cầu gia hạn.
+        /// Yêu cầu ExtensionRequestStatus == PENDING.
+        /// Sau khi duyệt: ExtensionRequestStatus = APPROVED, gửi Notification cho Reader.
+        /// Từ chối ExtensionRequestStatus = REJECTED, gửi notification cho Reader.
         /// PATCH /borrow-records/:id/extend
         /// </summary>
-        Task ConfirmExtensionAsync(int borrowId, int staffId, CancellationToken ct = default);
-
-        /// <summary>
-        /// Staff/Admin xác nhận trả sách
-        /// PATCH /borrow-records/:id/return
-        /// </summary>
-        Task ConfirmReturnAsync(int borrowId, ConfirmReturnRequest request, CancellationToken ct = default);
-
-        /// <summary>
-        /// Hủy phiếu mượn
-        /// PATCH /borrow-records/:id/cancel
-        /// </summary>
-        Task CancelBorrowRecordAsync(int borrowId,CancellationToken ct = default);
+        Task ConfirmExtensionAsync(int borrowId, ProcessExtensionRequest request, CancellationToken ct = default);
     }
 }

@@ -7,9 +7,18 @@ namespace HeThongQuanLyThuVien.DTOs.BorrowRecords
     {
         // Mã phiếu mượn
         public string? BorrowCode { get; set; }
-        // Ten nguoi muon
+
+        // Tên người mượn
         public string? ReaderName { get; set; }
-        // Trang thai phieu
+
+        // Trạng thái phiếu mượn
         public BorrowStatus? Status { get; set; }
+
+        /// <summary>
+        /// Filter theo trạng thái yêu cầu gia hạn.
+        /// Staff/Admin dùng ExtensionRequestStatus = PENDING để xem danh sách chờ duyệt.
+        /// GET /borrow-records?extensionRequestStatus=PENDING
+        /// </summary>
+        public ExtensionRequestStatus? ExtensionRequestStatus { get; set; }
     }
 }
