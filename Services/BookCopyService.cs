@@ -107,55 +107,68 @@ namespace HeThongQuanLyThuVien.Services
         // | POST | /book-copies/book/:id | Thêm bản sao sách | Staff/Admin |
         public async Task<CreateBookCopyResponse> CreateBookCopyAsync(int bookId, CreateBookCopyRequest request, CancellationToken ct = default)
         {
-            // 1. Kiểm tra đầu sách tồn tại, lấy luôn Title
-            var book = await _context.Books
-                .AsNoTracking()
-                .Where(b => b.BookId == bookId)
-                .Select(b => new { b.BookId, b.Title })
-                .FirstOrDefaultAsync(ct);
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
 
-            if (book is null)
-                throw new NotFoundException("Đầu sách không tồn tại!");
-
-            // 2. Tạo danh sách bản sao
-            var now = DateTime.UtcNow;
-            var copies = new List<BookCopy>();
-
-            // Lay so ban sao hien tai
-            var currentCopies = await _context.BookCopies.CountAsync(x => x.BookId == bookId ,ct); // 3
-
-            for (int i = 0; i < request.Quantity; i++)
-            { // i = 0
-                var copyNumber = currentCopies + i + 1; // 3 + 0 + 1 = 4
-                copies.Add(new BookCopy
-                {
-                    BookId = bookId,
-                    Barcode = await GenerateUniqueBarcodeAsync(bookId, copyNumber,ct),
-                    ShelfLocation = request.ShelfLocation,
-                    Status = BookCopyStatus.AVAILABLE,
-                    Condition = BookCondition.NORMAL,
-                    CreatedAt = now
-                });
-            }
-
-            await _context.BookCopies.AddRangeAsync(copies, ct);
-            await _context.SaveChangesAsync(ct);
-
-            return new CreateBookCopyResponse
+            try
             {
-                TotalCreated = copies.Count,
-                Copies = copies.Select(c => new BookCopyResponse
+
+                // 1. Kiểm tra đầu sách tồn tại, lấy luôn Title
+                var book = await _context.Books
+                    .AsNoTracking()
+                    .Where(b => b.BookId == bookId)
+                    .Select(b => new { b.BookId, b.Title })
+                    .FirstOrDefaultAsync(ct);
+
+                if (book is null)
+                    throw new NotFoundException("Đầu sách không tồn tại!");
+
+                // 2. Tạo danh sách bản sao
+                var now = DateTime.UtcNow;
+                var copies = new List<BookCopy>();
+
+                // Lay so ban sao hien tai
+                var currentCopies = await _context.BookCopies.CountAsync(x => x.BookId == bookId, ct); // 3
+
+                for (int i = 0; i < request.Quantity; i++)
+                { // i = 0
+                    var copyNumber = currentCopies + i + 1; // 3 + 0 + 1 = 4
+                    copies.Add(new BookCopy
+                    {
+                        BookId = bookId,
+                        Barcode = await GenerateUniqueBarcodeAsync(bookId, copyNumber, ct),
+                        ShelfLocation = request.ShelfLocation,
+                        Status = BookCopyStatus.AVAILABLE,
+                        Condition = BookCondition.NORMAL,
+                        CreatedAt = now
+                    });
+                }
+
+                await _context.BookCopies.AddRangeAsync(copies, ct);
+                await _context.SaveChangesAsync(ct);
+
+                await transaction.CommitAsync(ct);
+
+                return new CreateBookCopyResponse
                 {
-                    CopyId = c.CopyId,
-                    BookId = c.BookId,
-                    BookTitle = book.Title,
-                    Barcode = c.Barcode,
-                    ShelfLocation = c.ShelfLocation ?? string.Empty,
-                    Status = c.Status.ToString(),
-                    Condition = c.Condition.ToString(),
-                    CreatedAt = c.CreatedAt
-                }).ToList()
-            };
+                    TotalCreated = copies.Count,
+                    Copies = copies.Select(c => new BookCopyResponse
+                    {
+                        CopyId = c.CopyId,
+                        BookId = c.BookId,
+                        BookTitle = book.Title,
+                        Barcode = c.Barcode,
+                        ShelfLocation = c.ShelfLocation ?? string.Empty,
+                        Status = c.Status.ToString(),
+                        Condition = c.Condition.ToString(),
+                        CreatedAt = c.CreatedAt
+                    }).ToList()
+                };
+            }
+            catch(Exception ex)
+            {
+                await transaction.RollbackAsync(ct);
+                throw;
+            }
         }
 
         // | PUT | /book-copies/:id | Cập nhật tình trạng bản sao | Staff/Admin |

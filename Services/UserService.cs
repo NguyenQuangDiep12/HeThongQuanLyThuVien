@@ -6,18 +6,15 @@ using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Models.Enums;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace HeThongQuanLyThuVien.Services
 {
     public class UserService : IUserService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IHttpContextAccessor _contextAccessor;
-        public UserService(ApplicationDbContext context, IHttpContextAccessor contextAccessor)
+        public UserService(ApplicationDbContext context)
         {
             _context = context;
-            _contextAccessor = contextAccessor;
         }
 
         // POST /staff - admin them nhan vien
@@ -116,18 +113,12 @@ namespace HeThongQuanLyThuVien.Services
             };
         }
         // GET /users/:id - xem chi tiet nguoi dung
-        public async Task<UserProfileResponse> GetUserByIdAsync(int userId, CancellationToken ct = default)
+        public async Task<UserProfileResponse> GetUserByIdAsync(int userId, int currentUserId, string currentRole,CancellationToken ct = default)
         {
-            // 1. Lay thong tin nguoi dang nhap tu JWT
-            string? currentUserIdClaim = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            string? role = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
 
-            if (string.IsNullOrEmpty(currentUserIdClaim) || string.IsNullOrEmpty(role))
-                throw new UnauthorizedException("Nguoi dung chua dang nhap!");
 
-            int currentUserId = int.Parse(currentUserIdClaim);
-            bool isAdmin = role == "ADMIN";
-            bool isStaff = role == "STAFF";
+            bool isAdmin = currentRole == "ADMIN";
+            bool isStaff = currentRole == "STAFF";
             bool isOwner = currentUserId == userId;
 
             // Kiem tra quyen xem co ban (Chan truy van neu Reader di xem nguoi khac)
@@ -170,17 +161,38 @@ namespace HeThongQuanLyThuVien.Services
                 throw new ForbiddenException("Ban khong co quyen xem thong tin cua nhan vien hoac quan tri vien khac!");
             }
             /*
-             * TH1: Staff xem chinh minh => isStaff = true, IsOwner = !true => false, user.Role != "Reader" => true, => false
-             * TH2: Staff xem nguoi dung Reader => isStaff = true, IsOwner = !false => true, user.Role != "Reader" => false, => false
-             * TH3: Staff xem admin => isStaff = true, IsOwner = !false = true, user.Role != "Reader" => true => true 
-             * TH4: Staff xem another staff => isStaff = true, IsOwner = !false = true, user.Role != "Reader" => true => true
+             * TH1: Staff xem chinh minh
+             * isStaff = true
+             * isOwner = true
+             * !isOwner = false
+             * => Dieu kien = false => Cho phep
+             *
+             * TH2: Staff xem Reader
+             * isStaff = true
+             * isOwner = false
+             * !isOwner = true
+             * user.Role = READER => user.Role != "READER" = false
+             * => Dieu kien = false => Cho phep
+             *
+             * TH3: Staff xem Admin
+             * isStaff = true
+             * isOwner = false
+             * !isOwner = true
+             * user.Role != "READER" = true
+             * => Dieu kien = true => Forbidden
+             *
+             * TH4: Staff xem Staff khac
+             * isStaff = true
+             * isOwner = false
+             * !isOwner = true
+             * user.Role != "READER" = true
+             * => Dieu kien = true => Forbidden
              */
             return user;
         }
         // GET /users - STAFF/ADMIN Xem danh sach nguoi dung
-        public async Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, ClaimsPrincipal currentUser, CancellationToken ct = default)
+        public async Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, string currentUserRole, CancellationToken ct = default)
         {
-            var currentUserRole = currentUser.FindFirst(ClaimTypes.Role)?.Value;
 
             IQueryable<User> query = _context.Users.AsNoTracking();
 
@@ -188,6 +200,11 @@ namespace HeThongQuanLyThuVien.Services
             if (currentUserRole == RoleName.STAFF.ToString())
             {
                 query = query.Where(u => u.Role.RoleName == RoleName.READER);
+            }
+            else if (currentUserRole != RoleName.ADMIN.ToString())
+            {
+                throw new ForbiddenException(
+                    "Ban khong co quyen xem danh sach nguoi dung!");
             }
             // ADMIN không filter role => xem toàn bộ
 
@@ -233,8 +250,7 @@ namespace HeThongQuanLyThuVien.Services
         public async Task UpdateLibraryCardStatusAsync(int userId, UpdateLibraryCardStatusRequest request, CancellationToken ct = default)
         {
             var card = await _context.LibraryCards.FirstOrDefaultAsync(l => l.UserId == userId, ct);
-            if (card == null)
-                throw new NotFoundException("The thu vien khong ton tai!");
+            if(card == null) throw new NotFoundException("The thu vien khong ton tai!");
 
             card.Status = request.Status;
             await _context.SaveChangesAsync(ct);
@@ -279,26 +295,30 @@ namespace HeThongQuanLyThuVien.Services
 
             await _context.SaveChangesAsync(ct);
         }
-        /// PUT /users/:id - STAFF, ADMIN cap nhat thong tin nguoi dung
-        public async Task UpdateUserAsync(int userId, UpdateUserRequest request, CancellationToken ct = default)
+        // PUT /users/:id - STAFF, ADMIN cap nhat thong tin nguoi dung
+        public async Task UpdateUserAsync(int userId, UpdateUserRequest request, int currentUserId, string currentRole, CancellationToken ct = default)
         {
-            // lay thong tin nguoi thuc hien thao tac
-            string? currentRole = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value; // lay role trong JWT claims
-
             var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId, ct);
             if (user == null)
                 throw new NotFoundException("Nguoi dung khong ton tai!");
+            
+            // STAFF khong duoc sua chinh minh
+            if(currentRole == "STAFF" && currentUserId == userId)
+            {
+                throw new ForbiddenException("STAFF khong duoc tu sua thong tin cua endpoint nay!");
+            }
 
-            // STAFF or ADMIN khong duoc tu y sua thong tin cua ADMIN/STAFF khac qua endpoint nay
-            if (user.Role.RoleName != RoleName.READER)
-                throw new ForbiddenException("khong the chinh sua thong tin cua nhan vien or Admin tai day!");
-
+            // STAFF chi duoc sua reader
+            if(currentRole == "STAFF" && user.Role.RoleName != RoleName.READER)
+            {
+                throw new ForbiddenException("STAFF chi duoc sua reader!");
+            }
             user.FullName = request.FullName;
             user.Phone = request.Phone;
             user.Address = request.Address;
             user.UpdatedAt = DateTime.UtcNow;
 
-            // chi ADMIN moi co quyen thay doi RoleId cua nguoi !=
+            // chi ADMIN moi co quyen thay doi RoleId cua nguoi khac
             if (currentRole == "ADMIN")
             {
                 bool roleExists = await _context.Roles.AnyAsync(r => r.RoleId == request.RoleId, ct);
@@ -314,11 +334,6 @@ namespace HeThongQuanLyThuVien.Services
         // PATCH /users/:id/status  Khóa / mở tài khoản  Admin
         public async Task UpdateUserStatusAsync(int userId, UpdateUserStatusRequest request, CancellationToken ct = default)
         {
-            // Ngan chan viec Admin tu khoa chinh minh (Logic Safety)
-            string? currentUserId = _contextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (currentUserId != null && int.Parse(currentUserId) == userId)
-                throw new BadRequestException("Ban khong the tu khoa tai khoan cua chinh minh!");
 
             int affectedRows = await _context.Users
                 .Where(u => u.UserId == userId)

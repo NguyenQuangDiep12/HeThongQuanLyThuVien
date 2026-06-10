@@ -128,13 +128,16 @@ namespace HeThongQuanLyThuVien.Services
                 .Include(bd => bd.BorrowRecord)
                 .Include(bd => bd.BookCopy)
                 .FirstOrDefaultAsync(bd => bd.BorrowDetailId == request.BorrowDetailId, ct);
-            if (borrowDetail is null) 
-                throw new NotFoundException("Chi tiết phiếu mượn không tồn tại!");
+
+            if (borrowDetail is null) throw new NotFoundException("Chi tiết phiếu mượn không tồn tại!");
+
             bool fineExists = await _context.Fines.AnyAsync(f => f.BorrowDetailId == request.BorrowDetailId && f.FineType == request.FineType, ct);
+            
             if (fineExists)
             {
                 throw new BadRequestException("Loại phiếu phạt này đã tồn tại cho chi tiết mượn này!");
             }
+
             switch (request.FineType)
             {
                 case FineType.OVERDUE:
@@ -148,6 +151,17 @@ namespace HeThongQuanLyThuVien.Services
                     }
                     break;
                 case FineType.DAMAGED:
+                    
+                    if (borrowDetail.BookCopy.Condition == BookCondition.LOST) throw new BadRequestException("Cuốn sách đã được đánh dấu mất!");
+
+                    borrowDetail.BookCopy.Condition = BookCondition.DAMAGED;
+                    borrowDetail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
+                    break;
+                case FineType.LOST:
+
+                    if (borrowDetail.BookCopy.Condition == BookCondition.LOST) throw new BadRequestException("Cuốn sách đã được đánh dấu mất!");
+
+                    borrowDetail.BookCopy.Condition = BookCondition.LOST;
                     borrowDetail.BookCopy.Status = BookCopyStatus.UNAVAILABLE;
                     break;
                 default:

@@ -123,7 +123,7 @@ namespace HeThongQuanLyThuVien.Services
             await _mailService.SendEmailAsync(user.Email, "OTP Xác Thực", $"Mã OTP của bạn là {otp}");
         }
 
-        public async Task VerifiyOtpAsync(VerifyOtpRequest request, CancellationToken ct = default)
+        public async Task VerifyOtpAsync(VerifyOtpRequest request, CancellationToken ct = default)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email, ct);
 

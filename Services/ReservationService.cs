@@ -197,6 +197,7 @@ namespace HeThongQuanLyThuVien.Services
                 BorrowDate = DateTime.UtcNow,
                 DueDate = DateTime.UtcNow.AddDays(_librarySettings.BorrowDurationDays),
                 ExtensionCount = 0,
+                ExtensionRequestStatus = ExtensionRequestStatus.NONE,
                 BorrowType = BorrowType.TAKEHOME,
                 Status = BorrowStatus.BORROWING,
                 ApprovedAt = DateTime.UtcNow,

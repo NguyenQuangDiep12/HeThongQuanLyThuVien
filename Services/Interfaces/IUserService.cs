@@ -12,13 +12,13 @@ namespace HeThongQuanLyThuVien.Services.Interfaces
     public interface IUserService
     {
         // UC21 — GET /users  (Staff/Admin)
-        Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, ClaimsPrincipal currentUser, CancellationToken ct = default);
+        Task<PaginationResponse<UserListInfoResponse>> GetUsersAsync(GetUserRequest request, string currentUserRole, CancellationToken ct = default);
 
         // UC21 — GET /users/:id  (Owner/Staff/Admin)
-        Task<UserProfileResponse> GetUserByIdAsync(int userId, CancellationToken ct = default);
+        Task<UserProfileResponse> GetUserByIdAsync(int userId, int currentUserId, string currentRole ,CancellationToken ct = default);
 
         // UC21 — PUT /users/:id  (Staff/Admin cập nhật thông tin người dùng)
-        Task UpdateUserAsync(int userId, UpdateUserRequest request, CancellationToken ct = default);
+        Task UpdateUserAsync(int userId, UpdateUserRequest request, int currentUserId, string currentRole, CancellationToken ct = default);
 
         // UC05  — PUT /users/me/profile  (Reader tự cập nhật hồ sơ)
         Task UpdateMyProfileAsync(int currentUserId, UpdateProfileRequest request, CancellationToken ct = default);

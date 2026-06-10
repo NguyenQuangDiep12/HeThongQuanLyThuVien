@@ -67,7 +67,7 @@ namespace HeThongQuanLyThuVien.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request, CancellationToken ct = default)
         {
-            await _authService.VerifiyOtpAsync(request, ct);
+            await _authService.VerifyOtpAsync(request, ct);
 
             return Ok(new ApiResponse<object>
             {

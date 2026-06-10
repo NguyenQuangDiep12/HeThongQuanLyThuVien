@@ -1,5 +1,7 @@
 ﻿using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.DTOs.Users;
+using HeThongQuanLyThuVien.Exceptions;
+using HeThongQuanLyThuVien.Models;
 using HeThongQuanLyThuVien.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +27,9 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "STAFF,ADMIN")] 
         public async Task<IActionResult> GetUsers([FromQuery] GetUserRequest request, CancellationToken ct)
         {
-            var result = await _userService.GetUsersAsync(request, User, ct);
+            var currentUserRole = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+
+            var result = await _userService.GetUsersAsync(request, currentUserRole, ct);
             return Ok(new ApiResponse<PaginationResponse<UserListInfoResponse>>
             {
                 Success = true,
@@ -39,7 +43,16 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "READER,STAFF,ADMIN")]
         public async Task<IActionResult> GetUserDetail([FromRoute] int id, CancellationToken ct)
         {
-            var result = await _userService.GetUserByIdAsync(id, ct);
+            // 1. Lay thong tin nguoi dang nhap tu JWT
+            string? currentUserIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string? role = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value;
+
+            if (string.IsNullOrEmpty(currentUserIdClaim) || string.IsNullOrEmpty(role))
+                throw new UnauthorizedException("Nguoi dung chua dang nhap!");
+
+            int currentUserId = int.Parse(currentUserIdClaim);
+
+            var result = await _userService.GetUserByIdAsync(id, currentUserId, role, ct);
             return Ok(new ApiResponse<UserProfileResponse>
             {
                 Success = true,
@@ -53,7 +66,9 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "STAFF,ADMIN")]
         public async Task<IActionResult> UpdateUserInfo([FromRoute] int id, [FromBody] UpdateUserRequest request, CancellationToken ct)
         {
-            await _userService.UpdateUserAsync(id, request, ct);
+            int currentUserId = int.Parse(_httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            string currentRole = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value!; // lay role trong JWT claims
+            await _userService.UpdateUserAsync(id, request, currentUserId ,currentRole, ct);
             return Ok(new ApiResponse<object>
             {
                 Success = true,
@@ -96,7 +111,14 @@ namespace HeThongQuanLyThuVien.Controllers
         [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> UpdateUserStatus([FromRoute] int id, [FromBody] UpdateUserStatusRequest request, CancellationToken ct)
         {
-            await _userService.UpdateUserStatusAsync(id, request, ct);
+            // Ngan chan viec Admin tu khoa chinh minh (Logic Safety)
+            string? currentUserId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (currentUserId != null && int.Parse(currentUserId) == id)
+                throw new BadRequestException("Ban khong the tu khoa tai khoan cua chinh minh!");
+
+
+            await _userService.UpdateUserStatusAsync(id, request,ct);
             return Ok(new ApiResponse<object>
             {
                 Success = true,
