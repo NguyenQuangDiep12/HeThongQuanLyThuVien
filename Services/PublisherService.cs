@@ -13,8 +13,7 @@ namespace HeThongQuanLyThuVien.Services
         private readonly ApplicationDbContext _context;
 
         public PublisherService(
-            ApplicationDbContext context,
-            IHttpContextAccessor contextAccessor)
+            ApplicationDbContext context)
         {
             _context = context;
         }

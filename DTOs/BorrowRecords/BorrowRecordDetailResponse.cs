@@ -23,6 +23,7 @@ namespace HeThongQuanLyThuVien.DTOs.BorrowRecords
         public BorrowType BorrowType { get; set; }
 
         public BorrowStatus Status { get; set; }
+        public ExtensionRequestStatus ExtensionRequestStatus { get; set; }
 
         public int ExtensionCount { get; set; }
 

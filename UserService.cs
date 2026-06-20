@@ -1,4 +1,4 @@
-﻿using HeThongQuanLyThuVien.Data;
+using HeThongQuanLyThuVien.Data;
 using HeThongQuanLyThuVien.DTOs.Shared;
 using HeThongQuanLyThuVien.DTOs.Users;
 using HeThongQuanLyThuVien.Exceptions;
@@ -99,6 +99,7 @@ namespace HeThongQuanLyThuVien.Services
                     FullName = u.FullName,
                     Email = u.Email,
                     Phone = u.Phone,
+                    Address = u.Address,
                     Role = u.Role.RoleName.ToString(),
                     Status = u.Status.ToString(),
                     CardStatus = u.LibraryCard != null ? u.LibraryCard.Status.ToString() : string.Empty
@@ -233,6 +234,7 @@ namespace HeThongQuanLyThuVien.Services
                     FullName = u.FullName,
                     Email = u.Email,
                     Phone = u.Phone,
+                    Address = u.Address,
                     Role = u.Role.RoleName.ToString(),
                     Status = u.Status.ToString(),
                     CardStatus = u.LibraryCard != null ? u.LibraryCard.Status.ToString() : string.Empty,

@@ -175,9 +175,21 @@ builder.Services.AddHttpContextAccessor();
 #endregion
 
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactPolicy", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 
 var app = builder.Build();
+
+app.UseCors("ReactPolicy");
 
 if (app.Environment.IsDevelopment())
 {
@@ -187,10 +199,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
+app.UseHttpsRedirection();
+
+
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
-
-app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

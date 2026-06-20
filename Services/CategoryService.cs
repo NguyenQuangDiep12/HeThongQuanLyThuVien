@@ -14,8 +14,7 @@ namespace HeThongQuanLyThuVien.Services
         private readonly ApplicationDbContext _context;
 
         public CategoryService(
-            ApplicationDbContext context,
-            IHttpContextAccessor contextAccessor)
+            ApplicationDbContext context)
         {
             _context = context;
         }

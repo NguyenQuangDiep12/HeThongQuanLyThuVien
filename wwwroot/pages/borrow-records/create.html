@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo phiếu mượn - LibraryHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/global.css" rel="stylesheet">
+</head>
+<body>
+    <nav id="sidebar" class="sidebar"><div class="sidebar-brand"><i class="bi bi-book-half"></i><h5>LibraryHub</h5></div><nav class="nav flex-column py-2" id="sidebarNav"></nav></nav>
+    <div class="main-content">
+        <header class="topbar d-flex align-items-center justify-content-between px-4">
+            <div class="d-flex align-items-center gap-3"><button class="btn btn-link text-dark" id="sidebarToggle"><i class="bi bi-list fs-4"></i></button><h5 class="mb-0" id="pageTitle">Tạo phiếu mượn</h5></div>
+            <button class="btn btn-outline-secondary btn-sm" id="btnLogout"><i class="bi bi-box-arrow-right"></i></button>
+        </header>
+        <div class="content">
+            <div class="step-indicator"><div class="step active" data-step="1">1</div><div class="step" data-step="2">2</div><div class="step" data-step="3">3</div></div>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div id="step1" class="create-panel">
+                        <h6>Bước 1: Tìm độc giả</h6>
+                        <div class="input-group mb-3"><input type="text" id="readerSearch" class="form-control" placeholder="Nhập tên độc giả..."><button class="btn btn-primary" type="button" id="btnSearchReader">Tìm</button></div>
+                        <div id="readerResult"></div>
+                    </div>
+                    <div id="step2" class="create-panel" style="display:none">
+                        <h6>Bước 2: Chọn sách (tối đa 3) — Đã chọn: <span id="selectedCount">0</span></h6>
+                        <div class="input-group mb-3"><input type="text" id="bookSearch" class="form-control" placeholder="Tìm sách..."><button class="btn btn-primary" type="button" id="btnSearchBook">Tìm</button></div>
+                        <div class="list-group mb-3" id="bookResults"></div>
+                        <div id="copyPicker"></div>
+                    </div>
+                    <div id="step3" class="create-panel" style="display:none">
+                        <h6>Bước 3: Xác nhận</h6>
+                        <p><strong>Độc giả:</strong> <span id="confirmReader">—</span></p>
+                        <p><strong>Sách:</strong></p><div id="confirmBooks"></div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <button class="btn btn-secondary" id="btnPrev" style="display:none">Quay lại</button>
+                    <div class="ms-auto d-flex gap-2">
+                        <a href="index.html" class="btn btn-outline-secondary">Hủy</a>
+                        <button class="btn btn-primary" id="btnNext">Tiếp theo</button>
+                        <button class="btn btn-success" id="btnSubmitBorrow" style="display:none">Tạo phiếu mượn</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999"><div id="appToast" class="toast align-items-center border-0"><div class="d-flex"><div class="toast-body" id="toastMessage"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script><script src="/js/auth.js"></script><script src="/js/utils.js"></script><script src="/js/layout.js"></script><script src="borrow-records.js"></script>
+</body>
+</html>

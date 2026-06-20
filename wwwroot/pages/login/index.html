@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - LibraryHub</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/global.css" rel="stylesheet">
+</head>
+<body class="login-page">
+    <div class="card login-card">
+        <div class="card-body p-4 p-md-5">
+            <div class="text-center mb-4">
+                <i class="bi bi-book-half text-primary" style="font-size: 3rem;"></i>
+                <h3 class="mt-2 fw-bold">LibraryHub</h3>
+                <p class="text-muted">Hệ thống Quản lý Thư viện</p>
+            </div>
+
+            <ul class="nav nav-pills nav-fill mb-4" id="authTabs">
+                <li class="nav-item">
+                    <button class="nav-link active" data-mode="login">Đăng nhập</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-mode="register">Đăng ký</button>
+                </li>
+            </ul>
+
+            <form id="loginForm">
+                <div class="form-group mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="email" class="form-control" placeholder="admin@library.com" required>
+                    <div class="form-error text-danger small mt-1" id="emailError"></div>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Mật khẩu</label>
+                    <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+                    <div class="form-error text-danger small mt-1" id="passwordError"></div>
+                </div>
+                <div id="loginError" class="alert alert-danger d-none"></div>
+                <button type="submit" class="btn btn-primary w-100" id="btnLogin">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập
+                </button>
+            </form>
+
+            <form id="registerForm" style="display:none;">
+                <div class="mb-3">
+                    <label class="form-label">Họ tên</label>
+                    <input type="text" id="regFullName" class="form-control" required>
+                    <div class="form-error text-danger small mt-1" id="regFullNameError"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="regEmail" class="form-control" required>
+                    <div class="form-error text-danger small mt-1" id="regEmailError"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Số điện thoại</label>
+                    <input type="text" id="regPhone" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Địa chỉ</label>
+                    <input type="text" id="regAddress" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Mật khẩu</label>
+                    <input type="password" id="regPassword" class="form-control" required minlength="6">
+                </div>
+                <div id="registerError" class="alert alert-danger d-none"></div>
+                <button type="submit" class="btn btn-primary w-100" id="btnRegister">
+                    <i class="bi bi-person-plus me-1"></i> Đăng ký
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+        <div id="appToast" class="toast align-items-center border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
+    <script>
+        $(document).ready(function () {
+            if (localStorage.getItem('accessToken')) {
+                window.location.href = getRoleRedirect(getCurrentUser().role);
+                return;
+            }
+
+            $('#authTabs .nav-link').on('click', function () {
+                $('#authTabs .nav-link').removeClass('active');
+                $(this).addClass('active');
+                const mode = $(this).data('mode');
+                if (mode === 'login') {
+                    $('#loginForm').show();
+                    $('#registerForm').hide();
+                } else {
+                    $('#loginForm').hide();
+                    $('#registerForm').show();
+                }
+            });
+
+            $('#loginForm').on('submit', function (e) {
+                e.preventDefault();
+                clearFormErrors('loginForm');
+                $('#loginError').addClass('d-none');
+                showLoading('btnLogin');
+
+                login($('#email').val(), $('#password').val(), function (user) {
+                    hideLoading('btnLogin');
+                    showToast('success', 'Đăng nhập thành công!');
+                    setTimeout(function () {
+                        window.location.href = getRoleRedirect(user.role);
+                    }, 500);
+                }, function (err) {
+                    hideLoading('btnLogin');
+                    if (err.errors) showApiFieldErrors(err.errors);
+                    $('#loginError').text(err.message).removeClass('d-none');
+                    showToast('error', err.message);
+                });
+            });
+
+            $('#registerForm').on('submit', function (e) {
+                e.preventDefault();
+                showLoading('btnRegister');
+                AuthAPI.register({
+                    fullName: $('#regFullName').val(),
+                    email: $('#regEmail').val(),
+                    phone: $('#regPhone').val(),
+                    address: $('#regAddress').val(),
+                    password: $('#regPassword').val()
+                }, function (err, res) {
+                    hideLoading('btnRegister');
+                    if (err) {
+                        $('#registerError').text(err.message).removeClass('d-none');
+                        showToast('error', err.message);
+                        return;
+                    }
+                    const data = res.data;
+                    const userInfo = data.userInfo || data.user;
+                    saveAuth(data.accessToken, data.refreshToken, {
+                        userId: userInfo.userId,
+                        fullName: userInfo.fullName,
+                        email: userInfo.email,
+                        role: userInfo.role
+                    });
+                    showToast('success', 'Đăng ký thành công!');
+                    window.location.href = '/pages/book-search/index.html';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

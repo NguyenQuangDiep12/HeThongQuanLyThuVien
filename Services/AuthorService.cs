@@ -12,8 +12,7 @@ namespace HeThongQuanLyThuVien.Services
     {
         private readonly ApplicationDbContext _context;
         public AuthorService(
-            ApplicationDbContext context,
-            IHttpContextAccessor contextAccessor)
+            ApplicationDbContext context)
         {
             _context = context;
         }

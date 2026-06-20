@@ -76,7 +76,7 @@ namespace HeThongQuanLyThuVien.Controllers
         // PATCH /api/book-copies/:id/status  (Staff/Admin - doi trang thai ban sao)
         [HttpPatch("{id:int}/status")]
         [Authorize(Roles = "STAFF,ADMIN")]
-        public async Task<IActionResult> ChangeBookCopyStatus([FromRoute] int id, [FromQuery] UpdateBookCopyStatusRequest request, CancellationToken ct)
+        public async Task<IActionResult> ChangeBookCopyStatus([FromRoute] int id, [FromBody] UpdateBookCopyStatusRequest request, CancellationToken ct)
         {
             await _bookCopyService.ChangeBookCopyStatusAsync(id, request, ct);
             return Ok(new ApiResponse<object>

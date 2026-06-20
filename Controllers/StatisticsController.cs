@@ -46,7 +46,7 @@ namespace HeThongQuanLyThuVien.Controllers
 
         // GET /api/statistic/top-books  (Admin - sach duoc muon nhieu nhat)
         [HttpGet("top-books")]
-        public async Task<IActionResult> TopBooks([FromQuery] int top = 10, CancellationToken ct = default)
+        public async Task<IActionResult> TopBooks([FromQuery] int top, CancellationToken ct = default)
         {
             var result = await _statisticsService.GetTopBooksAsync(top, ct);
             return Ok(new ApiResponse<List<TopBookResponse>>

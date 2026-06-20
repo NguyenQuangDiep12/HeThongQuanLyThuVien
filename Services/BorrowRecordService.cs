@@ -158,6 +158,7 @@ namespace HeThongQuanLyThuVien.Services
                     BorrowType = br.BorrowType,
                     Status = br.Status,
                     ExtensionCount = br.ExtensionCount,
+                    ExtensionRequestStatus = br.ExtensionRequestStatus,
                     BorrowDetails = br.BorrowDetails
                         .Select(bd => new BorrowDetailResponse
                         {

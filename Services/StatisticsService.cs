@@ -56,7 +56,7 @@ namespace HeThongQuanLyThuVien.Services
                     BorrowId = br.BorrowId,
                     ReaderName = br.Reader.FullName,
                     DueDate = br.DueDate,
-                    OverdueDays = (int)(now - br.DueDate).TotalDays
+                    OverdueDays = Math.Max(1, (int)Math.Ceiling((now - br.DueDate).TotalDays))
                 })
                 .OrderByDescending(x => x.OverdueDays)
                 .ToList();
