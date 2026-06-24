@@ -154,5 +154,18 @@ namespace HeThongQuanLyThuVien.Controllers
                 Message = "Lay danh sach nhan vien thanh cong"
             });
         }
+
+        [HttpPut("staff/{id:int}")]
+        [Authorize(Roles = "ADMIN")]
+        public async Task<IActionResult> UpdateStaff([FromRoute] int id, [FromBody] UpdateStaffRequest request, CancellationToken ct)
+        {
+            await _userService.UpdateStaffAsync(id, request, ct);
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = null,
+                Message = "Cap nhat thong tin nhan vien thanh cong"
+            });
+        }
     }
 }
